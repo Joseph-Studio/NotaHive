@@ -1,22 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import AppHeader from '../components/AppHeader';
 
 export default function LandingScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome{'\n'}To{'\n'}Students{'\n'}Notes</Text>
-
-      <Image
-        source={require('../assets/shrek.png')}
-        style={styles.image}
-        resizeMode="contain"
-      />
+      <AppHeader />
 
       <Text style={styles.subtitle}>
         Stay organized, never miss a note or assignment deadline again!
       </Text>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/login')}>
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
 
@@ -28,26 +26,14 @@ export default function LandingScreen() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2e0066', 
+    backgroundColor: '#320b86',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-  },
-  title: {
-    fontSize: 26,
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontFamily: 'Cochin',
-    marginBottom: 20,
-  },
-  image: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
   },
   subtitle: {
     color: '#fff',
@@ -77,6 +63,6 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: '#fff',
     borderRadius: 5,
+    marginHorizontal: 5,
   },
 });
-
