@@ -7,7 +7,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import AppHeader from '../components/AppHeader';
-import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -15,22 +16,32 @@ export default function LoginScreen() {
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const router = useRouter();
+
+  const handleLogin = () => {
+    if (username === 'user' && password === 'pass') {
+      router.replace('/home'); // Navigate to home
+    } else {
+      alert('Invalid username or password');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <AppHeader />
 
       <View style={styles.card}>
         <View style={styles.headerRow}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/')}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
+
           <Text style={styles.signInTitle}>Sign in</Text>
           <TouchableOpacity>
             <Feather name="settings" size={22} color="#000" />
           </TouchableOpacity>
         </View>
 
-        {/* Username Field */}
         <Text style={styles.label}>User name</Text>
         <View style={styles.inputWrapper}>
           <Feather name="user" size={20} color="#888" style={styles.inputIcon} />
@@ -42,7 +53,6 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Password Field */}
         <Text style={styles.label}>Password</Text>
         <View style={styles.inputWrapper}>
           <Feather name="lock" size={20} color="#888" style={styles.inputIcon} />
@@ -63,7 +73,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Remember & Forgot */}
         <View style={styles.rememberRow}>
           <TouchableOpacity
             style={styles.checkbox}
@@ -78,12 +87,10 @@ export default function LoginScreen() {
           <Text style={styles.forgotText}>Forgot Password ?</Text>
         </View>
 
-        {/* Login Button */}
-        <TouchableOpacity style={styles.loginBtn}>
+        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
           <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
 
-        {/* Register */}
         <Text style={styles.registerText}>
           Don’t have an Account? <Text style={styles.registerLink}>Register</Text>
         </Text>
@@ -91,6 +98,7 @@ export default function LoginScreen() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
