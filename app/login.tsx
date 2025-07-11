@@ -9,6 +9,8 @@ import {
 import AppHeader from '../components/AppHeader';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import SettingsButton from '../components/SettingsButton';
+
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -20,7 +22,7 @@ export default function LoginScreen() {
 
   const handleLogin = () => {
     if (username === 'user' && password === 'pass') {
-      router.replace('/home'); // Navigate to home
+      router.replace({ pathname: '/home', params: { username } });
     } else {
       alert('Invalid username or password');
     }
@@ -35,11 +37,8 @@ export default function LoginScreen() {
           <TouchableOpacity onPress={() => router.replace('/')}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-
           <Text style={styles.signInTitle}>Sign in</Text>
-          <TouchableOpacity>
-            <Feather name="settings" size={22} color="#000" />
-          </TouchableOpacity>
+          <SettingsButton onPress={() => console.log('Login settings')} />
         </View>
 
         <Text style={styles.label}>User name</Text>

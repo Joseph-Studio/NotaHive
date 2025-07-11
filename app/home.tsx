@@ -1,21 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import SettingsButton from '../components/SettingsButton';
+import UserHeader from '../components/UserHeader';
 
 export default function HomePage() {
+  const { username } = useLocalSearchParams();
+
   return (
     <View style={styles.container}>
-      {/* User Info */}
-      <View style={styles.profile}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>DD</Text>
-        </View>
-        <View>
-          <Text style={styles.name}>Darshan Dahal ⌄</Text>
-          <Text style={styles.email}>darshandahal304@gmail.com</Text>
-        </View>
-      </View>
+      <UserHeader username={username as string} />
 
-      {/* List Menu */}
       <ScrollView style={styles.menu}>
         {[
           { label: 'My Day', count: 13 },
@@ -31,9 +26,7 @@ export default function HomePage() {
         ))}
       </ScrollView>
 
-      <TouchableOpacity style={styles.settingsButton}>
-        <Text style={styles.settingsGear}>⚙️</Text>
-      </TouchableOpacity>
+      <SettingsButton variant="circle" onPress={() => console.log('Home settings')} />
 
       <TouchableOpacity style={styles.newNote}>
         <Text style={styles.newNoteText}>+ New Note</Text>
@@ -47,34 +40,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
     padding: 16,
-    paddingTop: 40,
+    paddingTop: 50,
     justifyContent: 'space-between',
-  },
-  profile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  avatar: {
-    backgroundColor: '#d81b60',
-    borderRadius: 30,
-    width: 50,
-    height: 50,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  name: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  email: {
-    color: '#bbb',
-    fontSize: 12,
   },
   menu: {
     flexGrow: 1,
@@ -94,13 +61,6 @@ const styles = StyleSheet.create({
   count: {
     color: '#fff',
     fontWeight: '600',
-  },
-  settingsButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 10,
-  },
-  settingsGear: {
-    fontSize: 28,
   },
   newNote: {
     backgroundColor: '#2e2e2e',
