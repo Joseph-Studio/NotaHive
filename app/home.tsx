@@ -1,27 +1,34 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import SettingsButton from '../components/SettingsButton';
 import UserHeader from '../components/UserHeader';
 
 export default function HomePage() {
   const { username } = useLocalSearchParams();
+  const router = useRouter();
+
+  const sections = [
+    { label: 'My Day', route: 'myday', count: 0 },
+    { label: 'Important', route: 'important', count: 0 },
+    { label: 'Assignments', route: 'assignments', count: 0 },
+    { label: 'Tasks', route: 'tasks', count: 0 },
+    { label: 'All Notes', route: 'allnotes', count: 0 },
+  ];
 
   return (
     <View style={styles.container}>
       <UserHeader username={username as string} />
 
       <ScrollView style={styles.menu}>
-        {[
-          { label: 'My Day', count: 13 },
-          { label: 'Important', count: 5 },
-          { label: 'Assignments', count: 3 },
-          { label: 'Tasks', count: 2 },
-          { label: 'All Notes', count: 15 },
-        ].map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem}>
+        {sections.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={() => router.push(`/${item.route}`)}
+          >
             <Text style={styles.menuText}>{item.label}</Text>
-            <Text style={styles.count}>{String(item.count).padStart(2, '0')}</Text>
+            <Text style={styles.count}>{item.count}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
