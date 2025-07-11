@@ -19,16 +19,17 @@ export default function HomePage() {
   return (
     <View style={styles.container}>
       <UserHeader username={username as string} />
-
       <ScrollView style={styles.menu}>
         {sections.map((item, index) => (
           <TouchableOpacity
             key={index}
             style={styles.menuItem}
-            onPress={() => router.push(`/${item.route}`)}
+            onPress={() => router.push({ pathname: `/${item.route}`, params: { username } })}
           >
             <Text style={styles.menuText}>{item.label}</Text>
-            <Text style={styles.count}>{item.count}</Text>
+            <Text style={styles.count}>
+              {item.count === 0 ? '0' : String(item.count).padStart(2, '0')}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
