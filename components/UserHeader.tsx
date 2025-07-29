@@ -1,14 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useAuth } from "../lib/AuthContext";
 
-type Props = {
-	username: string;
-	email?: string;
-};
+export default function UserHeader() {
+	const { user } = useAuth();
 
-export default function UserHeader({ username, email }: Props) {
+	const username =
+		user?.user_metadata?.username || user?.email?.split("@")[0] || "User";
+	const email = user?.email || `${username}@example.com`;
 	const initial = username?.[0]?.toUpperCase() ?? "U";
-	const displayEmail = email || `${username}@example.com`;
 
 	return (
 		<View style={styles.profile}>
@@ -17,7 +17,7 @@ export default function UserHeader({ username, email }: Props) {
 			</View>
 			<View>
 				<Text style={styles.name}>{username} ⌄</Text>
-				<Text style={styles.email}>{displayEmail}</Text>
+				<Text style={styles.email}>{email}</Text>
 			</View>
 		</View>
 	);

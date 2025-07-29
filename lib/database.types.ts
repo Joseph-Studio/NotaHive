@@ -24,6 +24,32 @@ export type Database = {
 					updated_at?: string;
 				};
 			};
+			notes: {
+				Row: {
+					id: string;
+					user_id: string;
+					content: string;
+					note_type: "MyDay" | "Important" | "Assignments" | "Tasks";
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					user_id: string;
+					content: string;
+					note_type: "MyDay" | "Important" | "Assignments" | "Tasks";
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: {
+					id?: string;
+					user_id?: string;
+					content?: string;
+					note_type?: "MyDay" | "Important" | "Assignments" | "Tasks";
+					created_at?: string;
+					updated_at?: string;
+				};
+			};
 		};
 	};
 };

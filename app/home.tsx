@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
 	View,
 	Text,
@@ -7,10 +7,11 @@ import {
 	ScrollView,
 	Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
 import { useAuth } from "../lib/AuthContext";
+import { NotesService } from "../lib/notesService";
 
 export const sections = [
 	{ label: "My Day", route: "myday", count: 0 },
@@ -23,6 +24,77 @@ export const sections = [
 export default function HomePage() {
 	const router = useRouter();
 	const { user, signOut } = useAuth();
+	const [noteCounts, setNoteCounts] = useState<Record<string, number>>({
+		MyDay: 0,
+		Important: 0,
+		Assignments: 0,
+		Tasks: 0,
+	});
+	const [loading, setLoading] = useState(true);
+
+	// Load note counts from Supabase
+	const loadNoteCounts = async () => {
+		if (!user?.id) return;
+
+		try {
+			const { data, error } = await NotesService.getNoteCountsByType(
+				user.id
+			);
+
+			if (error) {
+				console.error("Error loading note counts:", error);
+				return;
+			}
+
+			if (data) {
+				setNoteCounts(data);
+			}
+		} catch (error) {
+			console.error("Exception loading note counts:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	// Update sections with real counts
+	const getSectionsWithCounts = () => {
+		return sections.map((section) => {
+			const routeKey =
+				section.route === "myday"
+					? "MyDay"
+					: section.route === "important"
+					? "Important"
+					: section.route === "assignments"
+					? "Assignments"
+					: section.route === "tasks"
+					? "Tasks"
+					: "All Notes";
+
+			const count =
+				routeKey === "All Notes"
+					? Object.values(noteCounts).reduce(
+							(sum, count) => sum + count,
+							0
+					  )
+					: noteCounts[routeKey] || 0;
+
+			return {
+				...section,
+				count,
+			};
+		});
+	};
+
+	useEffect(() => {
+		loadNoteCounts();
+	}, [user?.id]);
+
+	// Refresh counts when returning to this screen
+	useFocusEffect(
+		React.useCallback(() => {
+			loadNoteCounts();
+		}, [user?.id])
+	);
 
 	const handleLogout = async () => {
 		Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -38,15 +110,11 @@ export default function HomePage() {
 		]);
 	};
 
-	const username =
-		user?.user_metadata?.username || user?.email?.split("@")[0] || "User";
-	const userEmail = user?.email || "";
-
 	return (
 		<View style={styles.container}>
-			<UserHeader username={username} email={userEmail} />
+			<UserHeader />
 			<ScrollView style={styles.menu}>
-				{sections.map((item, index) => (
+				{getSectionsWithCounts().map((item, index) => (
 					<TouchableOpacity
 						key={index}
 						style={styles.menuItem}
@@ -54,7 +122,9 @@ export default function HomePage() {
 					>
 						<Text style={styles.menuText}>{item.label}</Text>
 						<Text style={styles.count}>
-							{item.count === 0
+							{loading
+								? "..."
+								: item.count === 0
 								? "0"
 								: String(item.count).padStart(2, "0")}
 						</Text>
@@ -74,6 +144,7 @@ export default function HomePage() {
 	);
 }
 
+// Keep the updateSectionCount function for backward compatibility
 export const updateSectionCount = (route: string, increase: number) => {
 	const section = sections.find((s) => s.route === route);
 	if (section) {

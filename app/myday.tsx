@@ -1,24 +1,196 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import SettingsButton from '../components/SettingsButton';
-import UserHeader from '../components/UserHeader';
-import globalStyles from '../styles/globalStyles';
-import BackButton from '../components/BackButton';
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import SettingsButton from "../components/SettingsButton";
+import UserHeader from "../components/UserHeader";
+import NoteCard from "../components/NoteCard";
+import globalStyles from "../styles/globalStyles";
+import BackButton from "../components/BackButton";
+import { NotesService } from "../lib/notesService";
+import { useAuth } from "../lib/AuthContext";
+import { Database } from "../lib/database.types";
+
+type Note = Database["public"]["Tables"]["notes"]["Row"];
 
 export default function MyDay() {
-  const { username } = useLocalSearchParams();
+	const { username } = useLocalSearchParams();
+	const { user } = useAuth();
+	const [notes, setNotes] = useState<Note[]>([]);
+	const [loading, setLoading] = useState(true);
 
-  return (
-    <View style={globalStyles.container}>
-      <UserHeader username={username as string} />
+	const loadNotes = async () => {
+		if (!user?.id) return;
 
-      <View style={globalStyles.content}>
-        <Text style={globalStyles.text}>This is the My Day screen</Text>
-      </View>
+		try {
+			const { data, error } = await NotesService.getUserNotesByType(
+				user.id,
+				"MyDay"
+			);
 
-      <BackButton onPress={() => router.push({ pathname: `./home`, params: { username } })} variant="circle" />
-      <SettingsButton variant="circle" onPress={() => console.log('Settings from My Day')} />
-    </View>
-  );
+			if (error) {
+				console.error("Error loading MyDay notes:", error);
+				Alert.alert("Error", "Failed to load notes. Please try again.");
+				return;
+			}
+
+			if (data) {
+				setNotes(data);
+			}
+		} catch (error) {
+			console.error("Exception loading MyDay notes:", error);
+			Alert.alert("Error", "An unexpected error occurred.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleDeleteNote = async (noteId: string) => {
+		Alert.alert(
+			"Delete Note",
+			"Are you sure you want to delete this note?",
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							const { error } = await NotesService.deleteNote(
+								noteId
+							);
+
+							if (error) {
+								console.error("Error deleting note:", error);
+								Alert.alert(
+									"Error",
+									"Failed to delete note. Please try again."
+								);
+								return;
+							}
+
+							setNotes((prevNotes) =>
+								prevNotes.filter((note) => note.id !== noteId)
+							);
+							Alert.alert(
+								"Success",
+								"Note deleted successfully!"
+							);
+						} catch (error) {
+							console.error("Exception deleting note:", error);
+							Alert.alert(
+								"Error",
+								"An unexpected error occurred."
+							);
+						}
+					},
+				},
+			]
+		);
+	};
+
+	useEffect(() => {
+		loadNotes();
+	}, [user?.id]);
+
+	return (
+		<View style={globalStyles.container}>
+			<UserHeader />
+
+			<View style={globalStyles.content}>
+				<View style={styles.header}>
+					<Text style={styles.title}>My Day Notes</Text>
+					<Text style={styles.subtitle}>
+						{notes.length} note{notes.length !== 1 ? "s" : ""}
+					</Text>
+				</View>
+
+				{loading ? (
+					<View style={styles.centerContainer}>
+						<Text style={styles.loadingText}>Loading notes...</Text>
+					</View>
+				) : notes.length === 0 ? (
+					<View style={styles.centerContainer}>
+						<Text style={styles.emptyText}>
+							No My Day notes yet
+						</Text>
+						<Text style={styles.emptySubtext}>
+							Create your first note to get started!
+						</Text>
+					</View>
+				) : (
+					<ScrollView
+						style={styles.notesContainer}
+						showsVerticalScrollIndicator={false}
+					>
+						{notes.map((note, index) => (
+							<NoteCard
+								key={note.id}
+								note={note}
+								onDelete={handleDeleteNote}
+								isFirst={index === 0}
+								accentColor="#6200ee"
+							/>
+						))}
+					</ScrollView>
+				)}
+			</View>
+
+			<BackButton
+				onPress={() =>
+					router.push({ pathname: `./home`, params: { username } })
+				}
+				variant="circle"
+			/>
+			<SettingsButton
+				variant="circle"
+				onPress={() => console.log("Settings from My Day")}
+			/>
+		</View>
+	);
 }
+
+const styles = StyleSheet.create({
+	header: {
+		marginBottom: 24,
+		alignItems: "center",
+	},
+	title: {
+		fontSize: 28,
+		fontWeight: "bold",
+		color: "white",
+		marginBottom: 4,
+	},
+	subtitle: {
+		fontSize: 14,
+		color: "#888",
+		fontWeight: "500",
+	},
+	centerContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 20,
+	},
+	loadingText: {
+		color: "white",
+		textAlign: "center",
+		fontSize: 16,
+		fontWeight: "500",
+	},
+	emptyText: {
+		color: "white",
+		textAlign: "center",
+		fontSize: 18,
+		fontWeight: "600",
+		marginBottom: 8,
+	},
+	emptySubtext: {
+		color: "#888",
+		textAlign: "center",
+		fontSize: 14,
+		lineHeight: 20,
+	},
+	notesContainer: {
+		flex: 1,
+	},
+});
