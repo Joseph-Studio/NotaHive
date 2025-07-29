@@ -13,33 +13,53 @@ import { useRouter } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import { useAuth } from "../lib/AuthContext";
 
-export default function LoginScreen() {
-	const [username, setUsername] = useState("");
+export default function RegisterScreen() {
+	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [remember, setRemember] = useState(false);
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [username, setUsername] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const [loading, setLoading] = useState(false);
 
 	const router = useRouter();
-	const { signIn } = useAuth();
+	const { signUp } = useAuth();
 
-	const handleLogin = async () => {
-		if (!username || !password) {
+	const handleRegister = async () => {
+		if (!email || !password || !confirmPassword || !username) {
 			Alert.alert("Error", "Please fill in all fields");
+			return;
+		}
+
+		if (password !== confirmPassword) {
+			Alert.alert("Error", "Passwords do not match");
+			return;
+		}
+
+		if (password.length < 6) {
+			Alert.alert("Error", "Password must be at least 6 characters long");
 			return;
 		}
 
 		setLoading(true);
 		try {
-			const { error } = await signIn(username, password);
+			const { error } = await signUp(email, password, username);
 
 			if (error) {
-				Alert.alert("Login Failed", error.message);
+				Alert.alert("Registration Failed", error.message);
 			} else {
-				router.replace("/home");
+				Alert.alert(
+					"Registration Successful! 🎉",
+					"Your account has been created successfully. Please check your email to verify your account before signing in.",
+					[{ text: "OK", onPress: () => router.replace("/login") }]
+				);
 			}
 		} catch (error) {
-			Alert.alert("Error", "An unexpected error occurred");
+			console.error("Registration error:", error);
+			Alert.alert(
+				"Error",
+				"An unexpected error occurred. Please try again."
+			);
 		} finally {
 			setLoading(false);
 		}
@@ -51,12 +71,12 @@ export default function LoginScreen() {
 
 			<View style={styles.card}>
 				<View style={styles.headerRow}>
-					<TouchableOpacity onPress={() => router.replace("/")}>
+					<TouchableOpacity onPress={() => router.back()}>
 						<Ionicons name="arrow-back" size={24} color="#000" />
 					</TouchableOpacity>
-					<Text style={styles.signInTitle}>Sign in</Text>
+					<Text style={styles.signUpTitle}>Sign up</Text>
 					<SettingsButton
-						onPress={() => console.log("Login settings")}
+						onPress={() => console.log("Register settings")}
 					/>
 				</View>
 
@@ -73,6 +93,24 @@ export default function LoginScreen() {
 						placeholder="Enter your username"
 						value={username}
 						onChangeText={setUsername}
+						autoCapitalize="none"
+					/>
+				</View>
+
+				<Text style={styles.label}>Email</Text>
+				<View style={styles.inputWrapper}>
+					<Feather
+						name="mail"
+						size={20}
+						color="#888"
+						style={styles.inputIcon}
+					/>
+					<TextInput
+						style={styles.input}
+						placeholder="Enter your email"
+						value={email}
+						onChangeText={setEmail}
+						keyboardType="email-address"
 						autoCapitalize="none"
 					/>
 				</View>
@@ -105,40 +143,56 @@ export default function LoginScreen() {
 					</TouchableOpacity>
 				</View>
 
-				<View style={styles.rememberRow}>
+				<Text style={styles.label}>Confirm Password</Text>
+				<View style={styles.inputWrapper}>
+					<Feather
+						name="lock"
+						size={20}
+						color="#888"
+						style={styles.inputIcon}
+					/>
+					<TextInput
+						style={styles.input}
+						placeholder="Confirm your password"
+						value={confirmPassword}
+						onChangeText={setConfirmPassword}
+						secureTextEntry={!showConfirmPassword}
+						autoCapitalize="none"
+					/>
 					<TouchableOpacity
-						style={styles.checkbox}
-						onPress={() => setRemember(!remember)}
+						onPress={() =>
+							setShowConfirmPassword(!showConfirmPassword)
+						}
 					>
-						<View style={styles.checkboxBox}>
-							{remember && <View style={styles.checkboxCheck} />}
-						</View>
-						<Text style={styles.rememberLabel}>Remember me</Text>
+						<Feather
+							name={showConfirmPassword ? "eye-off" : "eye"}
+							size={20}
+							color="#888"
+							style={styles.eyeIcon}
+						/>
 					</TouchableOpacity>
-
-					<Text style={styles.forgotText}>Forgot Password ?</Text>
 				</View>
 
 				<TouchableOpacity
 					style={[
-						styles.loginBtn,
-						loading && styles.loginBtnDisabled,
+						styles.registerBtn,
+						loading && styles.registerBtnDisabled,
 					]}
-					onPress={handleLogin}
+					onPress={handleRegister}
 					disabled={loading}
 				>
-					<Text style={styles.loginText}>
-						{loading ? "Signing in..." : "Login"}
+					<Text style={styles.registerBtnText}>
+						{loading ? "Creating account..." : "Create Account"}
 					</Text>
 				</TouchableOpacity>
 
-				<Text style={styles.registerText}>
-					Don't have an Account?{" "}
+				<Text style={styles.loginText}>
+					Already have an account?{" "}
 					<Text
-						style={styles.registerLink}
-						onPress={() => router.push("/register")}
+						style={styles.loginLink}
+						onPress={() => router.replace("/login")}
 					>
-						Register
+						Sign in
 					</Text>
 				</Text>
 			</View>
@@ -165,7 +219,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		marginBottom: 20,
 	},
-	signInTitle: {
+	signUpTitle: {
 		fontSize: 22,
 		fontWeight: "700",
 	},
@@ -195,60 +249,29 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		fontSize: 16,
 	},
-	rememberRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 20,
-	},
-	checkbox: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	checkboxBox: {
-		width: 18,
-		height: 18,
-		borderRadius: 3,
-		borderWidth: 1.5,
-		borderColor: "#000",
-		justifyContent: "center",
-		alignItems: "center",
-		marginRight: 8,
-	},
-	checkboxCheck: {
-		width: 10,
-		height: 10,
-		backgroundColor: "#000",
-	},
-	rememberLabel: {
-		fontSize: 14,
-	},
-	forgotText: {
-		fontSize: 14,
-		color: "#555",
-	},
-	loginBtn: {
+	registerBtn: {
 		backgroundColor: "#000",
 		paddingVertical: 14,
 		borderRadius: 10,
 		alignItems: "center",
+		marginTop: 20,
 	},
-	loginBtnDisabled: {
+	registerBtnDisabled: {
 		backgroundColor: "#ccc",
 		opacity: 0.7,
 	},
-	loginText: {
+	registerBtnText: {
 		color: "#fff",
 		fontSize: 16,
 		fontWeight: "600",
 	},
-	registerText: {
+	loginText: {
 		marginTop: 20,
 		textAlign: "center",
 		color: "#777",
 		fontSize: 14,
 	},
-	registerLink: {
+	loginLink: {
 		fontWeight: "bold",
 		color: "#000",
 	},
