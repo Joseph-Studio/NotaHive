@@ -145,11 +145,11 @@ export default function MyDay() {
 							<NoteCard
 								key={note.id}
 								note={note}
+								noteType={note.note_type}
 								onDelete={handleDeleteNote}
 								onValueChange={() =>
 									handleToggleCompleted(note.id, note.completed ?? false)}
 								isFirst={index === 0}
-								accentColor="#6200ee"
 							/>
 						))}
 					</ScrollView>

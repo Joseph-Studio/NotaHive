@@ -16,6 +16,7 @@ import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
 import Checkbox from 'expo-checkbox';
+import NoteCard from "../components/NoteCard";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
@@ -156,50 +157,18 @@ export default function Important() {
 						</Text>
 					</View>
 				) : (
-					<ScrollView
-						style={styles.notesContainer}
-						showsVerticalScrollIndicator={false}
-					>
+					<ScrollView style={styles.notesContainer}>
 						{notes.map((note, index) => (
-							<View
+							<NoteCard
 								key={note.id}
-								style={[
-									styles.noteCard,
-									index === 0 && styles.firstCard,
-								]}
-							>
-								<View style={styles.noteHeader}>
-									<Checkbox
-                                        value={note.completed}
-                                        onValueChange={() =>
-                                            handleToggleCompleted(note.id, note.completed ?? false)
-                                        }
-                                    />
-									<View style={styles.noteTypeBadge}>
-										<Text style={styles.noteTypeText}>
-											Important
-										</Text>
-									</View>
-									<TouchableOpacity
-										style={styles.deleteButton}
-										onPress={() =>
-											handleDeleteNote(note.id)
-										}
-									>
-										<Text style={styles.deleteButtonText}>
-											×
-										</Text>
-									</TouchableOpacity>
-								</View>
-								<Text style={styles.noteContent}>
-									{note.content}
-								</Text>
-								<View style={styles.noteFooter}>
-									<Text style={styles.noteDate}>
-										{formatDate(note.created_at)}
-									</Text>
-								</View>
-							</View>
+								note={note}
+								noteType="Important"
+								isFirst={index === 0}
+								onDelete={() => handleDeleteNote(note.id)}
+								onValueChange={(newValue) =>
+									handleToggleCompleted(note.id, note.completed)
+								}
+							/>
 						))}
 					</ScrollView>
 				)}

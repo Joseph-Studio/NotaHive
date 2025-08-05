@@ -7,19 +7,33 @@ type Note = Database["public"]["Tables"]["notes"]["Row"];
 
 interface NoteCardProps {
 	note: Note;
+	noteType?: string;
 	onDelete: (noteId: string) => void;
 	onValueChange: (id: string, completed: boolean) => void;
 	isFirst?: boolean;
-	accentColor?: string;
 }
 
 export default function NoteCard({
 	note,
+	noteType,
 	onDelete,
 	onValueChange,
 	isFirst = false,
-	accentColor = "#6200ee",
 }: NoteCardProps) {
+	const getNoteTypeColor = (selectedNoteType: string) => {
+		switch (selectedNoteType) {
+			case "MyDay":
+				return "#6200ee";
+			case "Important":
+				return "#f44336";
+			case "Assignments":
+				return "#2196f3";
+			case "Tasks":
+				return "#ff9800";
+			default:
+				return "#666";
+		}
+	};
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return (
@@ -37,17 +51,26 @@ export default function NoteCard({
 			style={[
 				styles.noteCard,
 				isFirst && styles.firstCard,
-				{ borderLeftColor: accentColor },
+				{ borderLeftColor: getNoteTypeColor(noteType) },
 			]}
 		>
 
-			<View style={styles.noteFooter}>
+			<View style={styles.noteHeader}>
 				<Checkbox
                     value={note.completed}
                     onValueChange={() =>
                         onValueChange(note.id, note.completed ?? false)
                     }
                 />
+				<Text
+					style={[
+						styles.noteTypeBadge,
+						{ backgroundColor: getNoteTypeColor(noteType) },
+						styles.noteTypeText,
+					]}
+				>
+					{note.note_type}
+				</Text>
 				<TouchableOpacity
 					style={styles.deleteButton}
 					onPress={() => onDelete(note.id)}
@@ -56,14 +79,57 @@ export default function NoteCard({
 				</TouchableOpacity>
 			</View>
 			<Text style={styles.noteContent}>{note.content}</Text>
-			<Text style={styles.noteDate}>
-					{formatDate(note.created_at)}
-				</Text>
+			<Text style={[styles.noteDate, styles.noteFooter]}>
+				{formatDate(note.created_at)}
+			</Text>
 		</View>
 	);
 }
 
 const styles = StyleSheet.create({
+	header: {
+		marginBottom: 24,
+		alignItems: "center",
+	},
+	title: {
+		fontSize: 28,
+		fontWeight: "bold",
+		color: "white",
+		marginBottom: 4,
+	},
+	subtitle: {
+		fontSize: 14,
+		color: "#888",
+		fontWeight: "500",
+	},
+	centerContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 20,
+	},
+	loadingText: {
+		color: "white",
+		textAlign: "center",
+		fontSize: 16,
+		fontWeight: "500",
+	},
+	emptyText: {
+		color: "white",
+		textAlign: "center",
+		fontSize: 18,
+		fontWeight: "600",
+		marginBottom: 8,
+	},
+	emptySubtext: {
+		color: "#888",
+		textAlign: "center",
+		fontSize: 14,
+		lineHeight: 20,
+	},
+	notesContainer: {
+		flex: 1,
+	},
 	noteCard: {
 		backgroundColor: "#2a2a2a",
 		borderRadius: 16,
@@ -82,24 +148,34 @@ const styles = StyleSheet.create({
 	firstCard: {
 		marginTop: 8,
 	},
+	noteHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 12,
+	},
+	noteTypeBadge: {
+		paddingHorizontal: 12,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+	noteTypeText: {
+		color: "white",
+		fontSize: 12,
+		fontWeight: "600",
+		textTransform: "uppercase",
+	},
 	noteContent: {
 		color: "white",
 		fontSize: 16,
 		lineHeight: 24,
-		fontWeight: "400",
 		marginBottom: 16,
-	},
-	noteTypeBadge: {
-		backgroundColor: "#ff9800",
-		paddingHorizontal: 12,
-		paddingVertical: 4,
-		borderRadius: 12,
+		fontWeight: "400",
 	},
 	noteFooter: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		gap: 20,
 	},
 	noteDate: {
 		color: "#888",

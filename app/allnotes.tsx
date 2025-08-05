@@ -16,6 +16,7 @@ import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
 import Checkbox from 'expo-checkbox';
+import NoteCard from "../components/NoteCard";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
@@ -155,107 +156,63 @@ export default function AllNotes() {
     };
 
 	return (
-		<View style={globalStyles.container}>
-			      <UserHeader />
+        <View style={globalStyles.container}>
+            <UserHeader />
 
-			<View style={globalStyles.content}>
-				<View style={styles.header}>
-					<Text style={styles.title}>All Notes</Text>
-					<Text style={styles.subtitle}>
-						{notes.length} note{notes.length !== 1 ? "s" : ""} total
-					</Text>
-				</View>
+            <View style={globalStyles.content}>
+                <View style={styles.header}>
+                    <Text style={styles.title}>All Notes</Text>
+                    <Text style={styles.subtitle}>
+                        {notes.length} note{notes.length !== 1 ? "s" : ""} total
+                    </Text>
+                </View>
 
-				{loading ? (
-					<View style={styles.centerContainer}>
-						<Text style={styles.loadingText}>
-							Loading all notes...
-						</Text>
-					</View>
-				) : notes.length === 0 ? (
-					<View style={styles.centerContainer}>
-						<Text style={styles.emptyText}>No notes yet</Text>
-						<Text style={styles.emptySubtext}>
-							Create your first note to get started!
-						</Text>
-					</View>
-				) : (
-					<ScrollView
-						style={styles.notesContainer}
-						showsVerticalScrollIndicator={false}
-					>
-						{notes.map((note, index) => (
-							<View
-								key={note.id}
-								style={[
-									styles.noteCard,
-									index === 0 && styles.firstCard,
-									{
-										borderLeftColor: getNoteTypeColor(
-											note.note_type
-										),
-									},
-								]}
-							>
-								<View style={styles.noteHeader}>
-									<Checkbox
-                                        value={note.completed}
-                                        onValueChange={() =>
-                                            handleToggleCompleted(note.id, note.completed ?? false)
-                                        }
-                                    />
-									<View
-										style={[
-											styles.noteTypeBadge,
-											{
-												backgroundColor:
-													getNoteTypeColor(
-														note.note_type
-													),
-											},
-										]}
-									>
-										<Text style={styles.noteTypeText}>
-											{getNoteTypeLabel(note.note_type)}
-										</Text>
-									</View>
-									<TouchableOpacity
-										style={styles.deleteButton}
-										onPress={() =>
-											handleDeleteNote(note.id)
-										}
-									>
-										<Text style={styles.deleteButtonText}>
-											×
-										</Text>
-									</TouchableOpacity>
-								</View>
-								<Text style={styles.noteContent}>
-									{note.content}
-								</Text>
-								<View style={styles.noteFooter}>
-									<Text style={styles.noteDate}>
-										{formatDate(note.created_at)}
-									</Text>
-								</View>
-							</View>
-						))}
-					</ScrollView>
-				)}
-			</View>
+                {loading ? (
+                    <View style={styles.centerContainer}>
+                        <Text style={styles.loadingText}>
+                            Loading all notes...
+                        </Text>
+                    </View>
+                ) : notes.length === 0 ? (
+                    <View style={styles.centerContainer}>
+                        <Text style={styles.emptyText}>No notes yet</Text>
+                        <Text style={styles.emptySubtext}>
+                            Create your first note to get started!
+                        </Text>
+                    </View>
+                ) : (
+                    <ScrollView
+                        style={styles.notesContainer}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {notes.map((note, index) => (
+                            <NoteCard
+                                key={note.id}
+                                note={note}
+                                noteType={note.note_type}
+                                isFirst={index === 0}
+                                onDelete={() => handleDeleteNote(note.id)}
+                                onValueChange={(id, completed) =>
+                                    handleToggleCompleted(id, completed)
+                                }
+                            />
+                        ))}
+                    </ScrollView>
+                )}
+            </View>
 
-			<BackButton
-				onPress={() =>
-					router.push({ pathname: `./home`, params: { username } })
-				}
-				variant="circle"
-			/>
-			<SettingsButton
-				variant="circle"
-				onPress={() => console.log("Settings from All Notes")}
-			/>
-		</View>
-	);
+            <BackButton
+                onPress={() =>
+                    router.push({ pathname: `./home`, params: { username } })
+                }
+                variant="circle"
+            />
+            <SettingsButton
+                variant="circle"
+                onPress={() => console.log("Settings from All Notes")}
+            />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
