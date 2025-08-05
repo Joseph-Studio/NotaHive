@@ -6,6 +6,8 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	Alert,
+	Platform,
+	Modal,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
@@ -15,6 +17,7 @@ import BackButton from "../components/BackButton";
 import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
@@ -23,6 +26,9 @@ export default function Tasks() {
 	const { user } = useAuth();
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showDatePicker, setShowDatePicker] = useState(false);
+	const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+	const [tempDate, setTempDate] = useState<Date>(new Date());
 
 	const loadNotes = async () => {
 		if (!user?.id) return;
@@ -61,37 +67,48 @@ export default function Tasks() {
 					style: "destructive",
 					onPress: async () => {
 						try {
-							const { error } = await NotesService.deleteNote(
-								noteId
-							);
+							const { error } = await NotesService.deleteNote(noteId);
 
 							if (error) {
 								console.error("Error deleting note:", error);
-								Alert.alert(
-									"Error",
-									"Failed to delete note. Please try again."
-								);
+								Alert.alert("Error", "Failed to delete note. Please try again.");
 								return;
 							}
 
 							setNotes((prevNotes) =>
 								prevNotes.filter((note) => note.id !== noteId)
 							);
-							Alert.alert(
-								"Success",
-								"Note deleted successfully!"
-							);
+							Alert.alert("Success", "Note deleted successfully!");
 						} catch (error) {
 							console.error("Exception deleting note:", error);
-							Alert.alert(
-								"Error",
-								"An unexpected error occurred."
-							);
+							Alert.alert("Error", "An unexpected error occurred.");
 						}
 					},
 				},
 			]
 		);
+	};
+
+	const handleDateChange = (event: any, selectedDate?: Date) => {
+		if (Platform.OS === "android") {
+			setShowDatePicker(false);
+			if (selectedDate && selectedNoteId) {
+				console.log("Reminder set for:", selectedDate, "Note ID:", selectedNoteId);
+				setSelectedNoteId(null);
+			}
+		} else {
+			if (selectedDate) {
+				setTempDate(selectedDate);
+			}
+		}
+	};
+
+	const handleConfirmIOSReminder = () => {
+		if (selectedNoteId && tempDate) {
+			console.log("iOS Reminder set for:", tempDate, "Note ID:", selectedNoteId);
+			setSelectedNoteId(null);
+			setShowDatePicker(false);
+		}
 	};
 
 	useEffect(() => {
@@ -109,7 +126,7 @@ export default function Tasks() {
 
 	return (
 		<View style={globalStyles.container}>
-			      <UserHeader />
+			<UserHeader />
 
 			<View style={globalStyles.content}>
 				<View style={styles.header}>
@@ -145,24 +162,29 @@ export default function Tasks() {
 							>
 								<View style={styles.noteHeader}>
 									<View style={styles.noteTypeBadge}>
-										<Text style={styles.noteTypeText}>
-											Task
-										</Text>
+										<Text style={styles.noteTypeText}>Task</Text>
 									</View>
+
+									<TouchableOpacity
+										style={styles.remindButton}
+										onPress={() => {
+											setSelectedNoteId(note.id);
+											setTempDate(new Date());
+											setShowDatePicker(true);
+										}}
+									>
+										<Text style={styles.remindButtonText}>⏰</Text>
+									</TouchableOpacity>
+
 									<TouchableOpacity
 										style={styles.deleteButton}
-										onPress={() =>
-											handleDeleteNote(note.id)
-										}
+										onPress={() => handleDeleteNote(note.id)}
 									>
-										<Text style={styles.deleteButtonText}>
-											×
-										</Text>
+										<Text style={styles.deleteButtonText}>×</Text>
 									</TouchableOpacity>
 								</View>
-								<Text style={styles.noteContent}>
-									{note.content}
-								</Text>
+
+								<Text style={styles.noteContent}>{note.content}</Text>
 								<View style={styles.noteFooter}>
 									<Text style={styles.noteDate}>
 										{formatDate(note.created_at)}
@@ -174,9 +196,42 @@ export default function Tasks() {
 				)}
 			</View>
 
+			{/* Android Picker */}
+			{showDatePicker && Platform.OS === "android" && (
+				<DateTimePicker
+					value={new Date()}
+					mode="date"
+					display="default"
+					onChange={handleDateChange}
+				/>
+			)}
+
+			{/* iOS Picker Modal */}
+			{Platform.OS === "ios" && (
+				<Modal visible={showDatePicker} transparent animationType="slide">
+					<View style={styles.modalOverlay}>
+						<View style={styles.modalContent}>
+							<DateTimePicker
+								value={tempDate}
+								mode="date"
+								display="spinner"
+								onChange={handleDateChange}
+								style={{ backgroundColor: "white" }}
+							/>
+							<TouchableOpacity
+								style={styles.iosConfirmButton}
+								onPress={handleConfirmIOSReminder}
+							>
+								<Text style={styles.iosConfirmButtonText}>Confirm</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</Modal>
+			)}
+
 			<BackButton
 				onPress={() =>
-					router.push({ pathname: `./home`, params: { username } })
+					router.push({ pathname: "./home", params: { username } })
 				}
 				variant="circle"
 			/>
@@ -240,10 +295,7 @@ const styles = StyleSheet.create({
 		borderLeftWidth: 4,
 		borderLeftColor: "#ff9800",
 		shadowColor: "#000",
-		shadowOffset: {
-			width: 0,
-			height: 2,
-		},
+		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.25,
 		shadowRadius: 3.84,
 		elevation: 5,
@@ -299,5 +351,42 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "bold",
 		lineHeight: 20,
+	},
+	remindButton: {
+		backgroundColor: "#4caf50",
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		justifyContent: "center",
+		alignItems: "center",
+		marginHorizontal: 8,
+	},
+	remindButtonText: {
+		color: "white",
+		fontSize: 16,
+		fontWeight: "bold",
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		justifyContent: "center",
+	},
+	modalContent: {
+		backgroundColor: "white",
+		marginHorizontal: 20,
+		borderRadius: 10,
+		padding: 16,
+	},
+	iosConfirmButton: {
+		marginTop: 10,
+		backgroundColor: "#007AFF",
+		borderRadius: 8,
+		paddingVertical: 10,
+	},
+	iosConfirmButtonText: {
+		color: "white",
+		textAlign: "center",
+		fontSize: 16,
+		fontWeight: "600",
 	},
 });

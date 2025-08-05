@@ -13,26 +13,30 @@ import UserHeader from "../components/UserHeader";
 import { useAuth } from "../lib/AuthContext";
 import { NotesService } from "../lib/notesService";
 
+
 export const sections = [
 	{ label: "My Day", route: "myday", count: 0 },
 	{ label: "Important", route: "important", count: 0 },
 	{ label: "Assignments", route: "assignments", count: 0 },
 	{ label: "Tasks", route: "tasks", count: 0 },
+	{ label: "Reminder", route: "reminder", count: 0 }, // i added New section for Reminder
 	{ label: "All Notes", route: "allnotes", count: 0 },
 ];
 
 export default function HomePage() {
 	const router = useRouter();
 	const { user, signOut } = useAuth();
+
+	//  Added Reminder to noteCounts state
 	const [noteCounts, setNoteCounts] = useState<Record<string, number>>({
 		MyDay: 0,
 		Important: 0,
 		Assignments: 0,
 		Tasks: 0,
+		Reminder: 0, // i added the New page here which is Reminder
 	});
 	const [loading, setLoading] = useState(true);
 
-	// Load note counts from Supabase
 	const loadNoteCounts = async () => {
 		if (!user?.id) return;
 
@@ -56,7 +60,7 @@ export default function HomePage() {
 		}
 	};
 
-	// Update sections with real counts
+	// Added logic to include Reminder in count
 	const getSectionsWithCounts = () => {
 		return sections.map((section) => {
 			const routeKey =
@@ -68,6 +72,8 @@ export default function HomePage() {
 					? "Assignments"
 					: section.route === "tasks"
 					? "Tasks"
+					: section.route === "reminder"
+					? "Reminder"
 					: "All Notes";
 
 			const count =
@@ -89,7 +95,6 @@ export default function HomePage() {
 		loadNoteCounts();
 	}, [user?.id]);
 
-	// Refresh counts when returning to this screen
 	useFocusEffect(
 		React.useCallback(() => {
 			loadNoteCounts();
@@ -144,7 +149,6 @@ export default function HomePage() {
 	);
 }
 
-// Keep the updateSectionCount function for backward compatibility
 export const updateSectionCount = (route: string, increase: number) => {
 	const section = sections.find((s) => s.route === route);
 	if (section) {
