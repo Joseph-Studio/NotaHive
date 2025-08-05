@@ -75,7 +75,7 @@ export default function HomePage() {
 					? Object.values(noteCounts).reduce(
 							(sum, count) => sum + count,
 							0
-					  )
+					)
 					: noteCounts[routeKey] || 0;
 
 			return {

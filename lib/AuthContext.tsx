@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase.Client";
+import { UserService } from "./userService";
 
 interface AuthContextType {
 	user: User | null;
@@ -56,23 +57,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		checkDatabaseSetup();
 
 		// Get initial session
-		supabase.auth.getSession().then(({ data: { session } }) => {
+		supabase.auth.getSession().then(async ({ data: { session } }) => {
 			setSession(session);
 			setUser(session?.user ?? null);
+
+			// Ensure profile exists for current user
+			if (session?.user) {
+				await ensureUserProfile(session.user);
+			}
+
 			setLoading(false);
 		});
 
 		// Listen for auth changes
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange((_event, session) => {
+		} = supabase.auth.onAuthStateChange(async (_event, session) => {
 			setSession(session);
 			setUser(session?.user ?? null);
+
+			// Ensure profile exists when user signs in
+			if (session?.user) {
+				await ensureUserProfile(session.user);
+			}
+
 			setLoading(false);
 		});
 
 		return () => subscription.unsubscribe();
 	}, []);
+
+	// Helper function to ensure user profile exists
+	const ensureUserProfile = async (user: User) => {
+		try {
+			// Check if user is confirmed/verified before trying to access profile
+			if (!user.email_confirmed_at && !user.confirmed_at) {
+				console.log("User not yet confirmed, skipping profile check");
+				return;
+			}
+
+			const profile = await UserService.getUserProfile(user.id);
+			if (!profile) {
+				console.log(
+					"Profile not found for user, attempting to create..."
+				);
+				const success = await UserService.ensureProfileExists(
+					user.id,
+					user.email || "",
+					user.user_metadata?.username ||
+						`user_${user.id.substring(0, 8)}`
+				);
+				if (success) {
+					console.log(
+						"Profile created successfully for existing user"
+					);
+				} else {
+					console.warn("Failed to create profile for existing user");
+				}
+			}
+		} catch (error) {
+			// Only log as error if it's not a "no rows returned" error
+			if (
+				error &&
+				typeof error === "object" &&
+				"code" in error &&
+				error.code === "PGRST116"
+			) {
+				console.log(
+					"User profile not yet accessible (user may not be confirmed)"
+				);
+			} else {
+				console.error("Error ensuring user profile:", error);
+			}
+		}
+	};
 
 	const signUp = async (
 		email: string,
@@ -82,6 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		try {
 			console.log("Starting signup process for:", { email, username });
 
+			// First, check if username already exists using UserService
+			const usernameExists = await UserService.checkUsernameExists(
+				username
+			);
+			if (usernameExists) {
+				return { error: { message: "Username already exists" } };
+			}
+
+			// Create the user in Supabase Auth
 			const { data, error } = await supabase.auth.signUp({
 				email,
 				password,
@@ -100,40 +167,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			console.log("Auth signup successful, user ID:", data.user?.id);
 
 			if (data.user) {
-				// Create profile record with the actual user ID
-				console.log(
-					"Attempting to create profile for user:",
-					data.user.id
-				);
+				// Wait a moment for the trigger to potentially create the profile
+				await new Promise((resolve) => setTimeout(resolve, 1000));
 
-				const { data: profileData, error: profileError } =
-					await supabase
-						.from("profiles")
-						.insert({
-							email,
-							username,
-							id: data.user.id,
-						})
-						.select();
-
-				if (profileError) {
-					console.error("Profile creation error details:", {
-						message: profileError.message,
-						code: profileError.code,
-						details: profileError.details,
-						hint: profileError.hint,
-					});
-					// Don't return error here since user was created successfully
-					// The trigger should handle profile creation as backup
-					console.log(
-						"User created but profile creation failed. Trigger should handle this."
+				// Use UserService to ensure profile exists
+				// Note: This might fail for unconfirmed users, which is expected
+				try {
+					const profileExists = await UserService.ensureProfileExists(
+						data.user.id,
+						email,
+						username
 					);
-				} else {
-					console.log("Profile created successfully:", profileData);
+
+					if (profileExists) {
+						console.log("User profile ensured successfully");
+					} else {
+						console.log(
+							"Profile creation may be delayed until email confirmation"
+						);
+					}
+				} catch (profileError) {
+					console.log(
+						"Profile creation delayed (user not yet confirmed)"
+					);
 				}
 			}
 
-			// Return success even if profile creation failed (trigger will handle it)
 			return { error: null };
 		} catch (error) {
 			console.error("SignUp error:", error);
