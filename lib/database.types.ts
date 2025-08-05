@@ -32,6 +32,7 @@ export type Database = {
 					note_type: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at: string;
 					updated_at: string;
+					completed: boolean;
 				};
 				Insert: {
 					id?: string;
@@ -40,6 +41,7 @@ export type Database = {
 					note_type: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at?: string;
 					updated_at?: string;
+					completed: boolean;
 				};
 				Update: {
 					id?: string;
@@ -48,6 +50,7 @@ export type Database = {
 					note_type?: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at?: string;
 					updated_at?: string;
+					completed: boolean;
 				};
 			};
 		};

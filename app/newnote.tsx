@@ -26,6 +26,7 @@ export default function NewNotes() {
 	const [isSaving, setIsSaving] = useState(false);
 	const inputRef = React.useRef<TextInput>(null);
 	const [selectedNoteType, setSelectedNoteType] = useState<NoteType>("MyDay");
+	const completed = false;
 
 	const handleSaveNote = async () => {
 		if (text.trim() === "") {
@@ -46,7 +47,9 @@ export default function NewNotes() {
 			const { data, error } = await NotesService.createNote(
 				user.id,
 				text.trim(),
-				selectedNoteType
+				selectedNoteType,
+				selectedNoteType,
+				completed
 			);
 
 			if (error) {

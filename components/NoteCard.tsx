@@ -1,12 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Database } from "../lib/database.types";
+import Checkbox from "expo-checkbox";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
 interface NoteCardProps {
 	note: Note;
 	onDelete: (noteId: string) => void;
+	onValueChange: (id: string, completed: boolean) => void;
 	isFirst?: boolean;
 	accentColor?: string;
 }
@@ -14,6 +16,7 @@ interface NoteCardProps {
 export default function NoteCard({
 	note,
 	onDelete,
+	onValueChange,
 	isFirst = false,
 	accentColor = "#6200ee",
 }: NoteCardProps) {
@@ -37,11 +40,14 @@ export default function NoteCard({
 				{ borderLeftColor: accentColor },
 			]}
 		>
-			<Text style={styles.noteContent}>{note.content}</Text>
+
 			<View style={styles.noteFooter}>
-				<Text style={styles.noteDate}>
-					{formatDate(note.created_at)}
-				</Text>
+				<Checkbox
+                    value={note.completed}
+                    onValueChange={() =>
+                        onValueChange(note.id, note.completed ?? false)
+                    }
+                />
 				<TouchableOpacity
 					style={styles.deleteButton}
 					onPress={() => onDelete(note.id)}
@@ -49,6 +55,10 @@ export default function NoteCard({
 					<Text style={styles.deleteButtonText}>×</Text>
 				</TouchableOpacity>
 			</View>
+			<Text style={styles.noteContent}>{note.content}</Text>
+			<Text style={styles.noteDate}>
+					{formatDate(note.created_at)}
+				</Text>
 		</View>
 	);
 }
@@ -78,6 +88,12 @@ const styles = StyleSheet.create({
 		lineHeight: 24,
 		fontWeight: "400",
 		marginBottom: 16,
+	},
+	noteTypeBadge: {
+		backgroundColor: "#ff9800",
+		paddingHorizontal: 12,
+		paddingVertical: 4,
+		borderRadius: 12,
 	},
 	noteFooter: {
 		flexDirection: "row",

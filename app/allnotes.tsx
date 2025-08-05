@@ -15,6 +15,7 @@ import BackButton from "../components/BackButton";
 import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
+import Checkbox from 'expo-checkbox';
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
@@ -134,6 +135,25 @@ export default function AllNotes() {
 		}
 	};
 
+	const handleToggleCompleted = async (noteId: string, currentValue: boolean) => {
+        try {
+            const { data, error } = await NotesService.updateNoteCompleted(noteId, !currentValue);
+            if (error) {
+                console.error("Error updating note completion:", error);
+                Alert.alert("Error", "Failed to update note. Please try again.");
+                return;
+            }
+            setNotes((prevNotes) =>
+                prevNotes.map((note) =>
+                    note.id === noteId ? { ...note, completed: !currentValue } : note
+                )
+            );
+        } catch (error) {
+            console.error("Exception updating note completion:", error);
+            Alert.alert("Error", "An unexpected error occurred.");
+        }
+    };
+
 	return (
 		<View style={globalStyles.container}>
 			      <UserHeader />
@@ -178,6 +198,12 @@ export default function AllNotes() {
 								]}
 							>
 								<View style={styles.noteHeader}>
+									<Checkbox
+                                        value={note.completed}
+                                        onValueChange={() =>
+                                            handleToggleCompleted(note.id, note.completed ?? false)
+                                        }
+                                    />
 									<View
 										style={[
 											styles.noteTypeBadge,

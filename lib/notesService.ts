@@ -8,10 +8,7 @@ type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 export class NotesService {
 	// Create a new note
 	static async createNote(
-		userId: string,
-		content: string,
-		noteType: NoteInsert["note_type"]
-	): Promise<{ data: Note | null; error: any }> {
+userId: string, content: string, selectedNoteType: string, noteType: NoteInsert["note_type"], completedNote: boolean	): Promise<{ data: Note | null; error: any }> {
 		try {
 			const { data, error } = await supabase
 				.from("notes")
@@ -19,6 +16,7 @@ export class NotesService {
 					user_id: userId,
 					content,
 					note_type: noteType,
+					completed: completedNote
 				})
 				.select()
 				.single();
@@ -106,6 +104,14 @@ export class NotesService {
 			console.error("Exception updating note:", error);
 			return { data: null, error };
 		}
+	}
+
+	static async updateNoteCompleted(noteId: string, completed: boolean) {
+    return supabase
+        .from('notes')
+        .update({ completed })
+        .eq('id', noteId)
+        .single();
 	}
 
 	// Delete a note

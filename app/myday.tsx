@@ -92,6 +92,25 @@ export default function MyDay() {
 		loadNotes();
 	}, [user?.id]);
 
+	const handleToggleCompleted = async (noteId: string, currentValue: boolean) => {
+        try {
+            const { data, error } = await NotesService.updateNoteCompleted(noteId, !currentValue);
+            if (error) {
+                console.error("Error updating note completion:", error);
+                Alert.alert("Error", "Failed to update note. Please try again.");
+                return;
+            }
+            setNotes((prevNotes) =>
+                prevNotes.map((note) =>
+                    note.id === noteId ? { ...note, completed: !currentValue } : note
+                )
+            );
+        } catch (error) {
+            console.error("Exception updating note completion:", error);
+            Alert.alert("Error", "An unexpected error occurred.");
+        }
+    };
+
 	return (
 		<View style={globalStyles.container}>
 			<UserHeader />
@@ -127,6 +146,8 @@ export default function MyDay() {
 								key={note.id}
 								note={note}
 								onDelete={handleDeleteNote}
+								onValueChange={() =>
+									handleToggleCompleted(note.id, note.completed ?? false)}
 								isFirst={index === 0}
 								accentColor="#6200ee"
 							/>
