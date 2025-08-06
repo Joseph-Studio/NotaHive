@@ -28,6 +28,7 @@ export type Database = {
 				Row: {
 					id: string;
 					user_id: string;
+					title: string;
 					content: string;
 					note_type: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at: string;
@@ -37,6 +38,7 @@ export type Database = {
 				Insert: {
 					id?: string;
 					user_id: string;
+					title: string;
 					content: string;
 					note_type: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at?: string;
@@ -46,6 +48,7 @@ export type Database = {
 				Update: {
 					id?: string;
 					user_id?: string;
+					title?: string;
 					content?: string;
 					note_type?: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at?: string;

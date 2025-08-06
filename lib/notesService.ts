@@ -8,13 +8,14 @@ type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 export class NotesService {
 	// Create a new note
 	static async createNote(
-userId: string, content: string, selectedNoteType: string, noteType: NoteInsert["note_type"], completedNote: boolean	): Promise<{ data: Note | null; error: any }> {
+userId: string, title: string, content: string, noteType: NoteInsert["note_type"], completedNote: boolean	): Promise<{ data: Note | null; error: any }> {
 		try {
 			const { data, error } = await supabase
 				.from("notes")
 				.insert({
 					user_id: userId,
-					content,
+					title: title,
+					content: content,
 					note_type: noteType,
 					completed: completedNote
 				})

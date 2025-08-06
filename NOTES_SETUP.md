@@ -16,6 +16,7 @@ Run the following SQL script in your Supabase SQL editor:
 CREATE TABLE IF NOT EXISTS notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
   content TEXT NOT NULL,
   note_type TEXT NOT NULL CHECK (note_type IN ('MyDay', 'Important', 'Assignments', 'Tasks')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -22,6 +22,7 @@ export default function NewNotes() {
 	const { username } = useLocalSearchParams();
 	const { user } = useAuth();
 	const [text, setText] = useState("");
+	const [title, setTitle] = useState("");
 	const [editing, setEditing] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const inputRef = React.useRef<TextInput>(null);
@@ -46,13 +47,14 @@ export default function NewNotes() {
 		try {
 			const { data, error } = await NotesService.createNote(
 				user.id,
+				title.trim() || "Untitled Note",
 				text.trim(),
-				selectedNoteType,
 				selectedNoteType,
 				completed
 			);
 
 			if (error) {
+				console.log(selectedNoteType);
 				console.error("Error saving note:", error);
 				Alert.alert("Error", "Failed to save note. Please try again.");
 				return;
@@ -88,6 +90,24 @@ export default function NewNotes() {
 
 			<SafeAreaView style={globalStyles.content}>
 				<Text style={styles.label}>New Note</Text>
+				<TextInput
+					ref={inputRef}
+					style={styles.title}
+					placeholder="Enter Title..."
+					value={title}
+					onChangeText={setTitle}
+					autoFocus
+					onSubmitEditing={() => {
+						setEditing(false);
+						inputRef.current && inputRef.current.blur();
+					}}
+					onKeyPress={({ nativeEvent }) => {
+						if (nativeEvent.key === "Enter") {
+							setEditing(false);
+							inputRef.current && inputRef.current.blur();
+						}
+					}}
+				/>
 				<TextInput
 					ref={inputRef}
 					style={styles.input}
@@ -196,5 +216,15 @@ const styles = StyleSheet.create({
 		color: "white",
 		textAlign: "center",
 		fontWeight: "600",
+	},
+	title: {
+		fontSize: 24,
+		height: "10%",
+		width: "100%",
+		borderColor: "gray",
+		borderWidth: 1,
+		padding: 10,
+		color: "white",
+		marginBottom: 10,
 	},
 });

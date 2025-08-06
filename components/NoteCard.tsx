@@ -78,6 +78,13 @@ export default function NoteCard({
 					<Text style={styles.deleteButtonText}>×</Text>
 				</TouchableOpacity>
 			</View>
+			{
+				note.title ? (
+					<Text style={styles.noteTitle}>{note.title}</Text>
+				) : (
+					<Text style={styles.noteContent}>Untitled Note</Text>
+				)
+			}
 			<Text style={styles.noteContent}>{note.content}</Text>
 			<Text style={[styles.noteDate, styles.noteFooter]}>
 				{formatDate(note.created_at)}
@@ -164,6 +171,12 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		fontWeight: "600",
 		textTransform: "uppercase",
+	},
+	noteTitle: {
+		fontSize: 18,
+		fontWeight: "bold",
+		color: "white",
+		marginBottom: 8,
 	},
 	noteContent: {
 		color: "white",
