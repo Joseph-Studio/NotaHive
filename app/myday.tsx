@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
+import {
+	View,
+	Text,
+	StyleSheet,
+	ScrollView,
+	Alert,
+	TouchableOpacity,
+	Platform,
+	Modal,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
-import NoteCard from "../components/NoteCard";
 import globalStyles from "../styles/globalStyles";
 import BackButton from "../components/BackButton";
 import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
@@ -17,6 +26,9 @@ export default function MyDay() {
 	const { user } = useAuth();
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showDatePicker, setShowDatePicker] = useState(false);
+	const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+	const [tempDate, setTempDate] = useState<Date>(new Date());
 
 	const loadNotes = async () => {
 		if (!user?.id) return;
@@ -55,32 +67,19 @@ export default function MyDay() {
 					style: "destructive",
 					onPress: async () => {
 						try {
-							const { error } = await NotesService.deleteNote(
-								noteId
-							);
-
+							const { error } = await NotesService.deleteNote(noteId);
 							if (error) {
 								console.error("Error deleting note:", error);
-								Alert.alert(
-									"Error",
-									"Failed to delete note. Please try again."
-								);
+								Alert.alert("Error", "Failed to delete note. Please try again.");
 								return;
 							}
-
 							setNotes((prevNotes) =>
 								prevNotes.filter((note) => note.id !== noteId)
 							);
-							Alert.alert(
-								"Success",
-								"Note deleted successfully!"
-							);
+							Alert.alert("Success", "Note deleted successfully!");
 						} catch (error) {
 							console.error("Exception deleting note:", error);
-							Alert.alert(
-								"Error",
-								"An unexpected error occurred."
-							);
+							Alert.alert("Error", "An unexpected error occurred.");
 						}
 					},
 				},
@@ -88,9 +87,40 @@ export default function MyDay() {
 		);
 	};
 
+	const handleDateChange = (event: any, selectedDate?: Date) => {
+		if (Platform.OS === "android") {
+			setShowDatePicker(false);
+			if (selectedDate && selectedNoteId) {
+				console.log("Reminder set for:", selectedDate, "Note ID:", selectedNoteId);
+				setSelectedNoteId(null);
+			}
+		} else {
+			if (selectedDate) {
+				setTempDate(selectedDate);
+			}
+		}
+	};
+
+	const handleConfirmIOSReminder = () => {
+		if (selectedNoteId && tempDate) {
+			console.log("iOS Reminder set for:", tempDate, "Note ID:", selectedNoteId);
+			setSelectedNoteId(null);
+			setShowDatePicker(false);
+		}
+	};
+
 	useEffect(() => {
 		loadNotes();
 	}, [user?.id]);
+
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString);
+		return (
+			date.toLocaleDateString() +
+			" " +
+			date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+		);
+	};
 
 	return (
 		<View style={globalStyles.container}>
@@ -110,9 +140,7 @@ export default function MyDay() {
 					</View>
 				) : notes.length === 0 ? (
 					<View style={styles.centerContainer}>
-						<Text style={styles.emptyText}>
-							No My Day notes yet
-						</Text>
+						<Text style={styles.emptyText}>No My Day notes yet</Text>
 						<Text style={styles.emptySubtext}>
 							Create your first note to get started!
 						</Text>
@@ -123,17 +151,79 @@ export default function MyDay() {
 						showsVerticalScrollIndicator={false}
 					>
 						{notes.map((note, index) => (
-							<NoteCard
+							<View
 								key={note.id}
-								note={note}
-								onDelete={handleDeleteNote}
-								isFirst={index === 0}
-								accentColor="#6200ee"
-							/>
+								style={[
+									styles.noteCard,
+									index === 0 && styles.firstCard,
+								]}
+							>
+								<View style={styles.noteHeader}>
+									<Text style={styles.noteTypeText}>MyDay</Text>
+
+									<TouchableOpacity
+										style={styles.remindButton}
+										onPress={() => {
+											setSelectedNoteId(note.id);
+											setTempDate(new Date());
+											setShowDatePicker(true);
+										}}
+									>
+										<Text style={styles.remindButtonText}>⏰</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={styles.deleteButton}
+										onPress={() => handleDeleteNote(note.id)}
+									>
+										<Text style={styles.deleteButtonText}>×</Text>
+									</TouchableOpacity>
+								</View>
+
+								<Text style={styles.noteContent}>{note.content}</Text>
+								<View style={styles.noteFooter}>
+									<Text style={styles.noteDate}>
+										{formatDate(note.created_at)}
+									</Text>
+								</View>
+							</View>
 						))}
 					</ScrollView>
 				)}
 			</View>
+
+			{/* Android Date Picker */}
+			{showDatePicker && Platform.OS === "android" && (
+				<DateTimePicker
+					value={new Date()}
+					mode="date"
+					display="default"
+					onChange={handleDateChange}
+				/>
+			)}
+
+			{/* iOS Date Picker Modal */}
+			{Platform.OS === "ios" && (
+				<Modal visible={showDatePicker} transparent animationType="slide">
+					<View style={styles.modalOverlay}>
+						<View style={styles.modalContent}>
+							<DateTimePicker
+								value={tempDate}
+								mode="date"
+								display="spinner"
+								onChange={handleDateChange}
+								style={{ backgroundColor: "white" }}
+							/>
+							<TouchableOpacity
+								style={styles.iosConfirmButton}
+								onPress={handleConfirmIOSReminder}
+							>
+								<Text style={styles.iosConfirmButtonText}>Confirm</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</Modal>
+			)}
 
 			<BackButton
 				onPress={() =>
@@ -192,5 +282,101 @@ const styles = StyleSheet.create({
 	},
 	notesContainer: {
 		flex: 1,
+	},
+	noteCard: {
+		backgroundColor: "#333",
+		borderRadius: 16,
+		padding: 20,
+		marginBottom: 16,
+		borderLeftWidth: 4,
+		borderLeftColor: "#6200ee",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.25,
+		shadowRadius: 3.84,
+		elevation: 5,
+	},
+	firstCard: {
+		marginTop: 8,
+	},
+	noteHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 12,
+	},
+	noteTypeText: {
+		color: "white",
+		fontSize: 12,
+		fontWeight: "600",
+		textTransform: "uppercase",
+	},
+	noteContent: {
+		color: "white",
+		fontSize: 16,
+		lineHeight: 24,
+		marginBottom: 16,
+		fontWeight: "400",
+	},
+	noteFooter: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+	noteDate: {
+		color: "#888",
+		fontSize: 12,
+		fontWeight: "500",
+	},
+	deleteButton: {
+		backgroundColor: "#f50057",
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	deleteButtonText: {
+		color: "white",
+		fontSize: 18,
+		fontWeight: "bold",
+		lineHeight: 20,
+	},
+	remindButton: {
+		backgroundColor: "#4caf50",
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		justifyContent: "center",
+		alignItems: "center",
+		marginHorizontal: 8,
+	},
+	remindButtonText: {
+		color: "white",
+		fontSize: 16,
+		fontWeight: "bold",
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		justifyContent: "center",
+	},
+	modalContent: {
+		backgroundColor: "white",
+		marginHorizontal: 20,
+		borderRadius: 10,
+		padding: 16,
+	},
+	iosConfirmButton: {
+		marginTop: 10,
+		backgroundColor: "#007AFF",
+		borderRadius: 8,
+		paddingVertical: 10,
+	},
+	iosConfirmButtonText: {
+		color: "white",
+		textAlign: "center",
+		fontSize: 16,
+		fontWeight: "600",
 	},
 });

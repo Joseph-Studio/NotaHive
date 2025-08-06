@@ -6,7 +6,9 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	Alert,
+	Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
@@ -23,6 +25,8 @@ export default function Assignments() {
 	const { user } = useAuth();
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showDatePicker, setShowDatePicker] = useState(false);
+	const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
 
 	const loadNotes = async () => {
 		if (!user?.id) return;
@@ -51,47 +55,50 @@ export default function Assignments() {
 	};
 
 	const handleDeleteNote = async (noteId: string) => {
-		Alert.alert(
-			"Delete Note",
-			"Are you sure you want to delete this note?",
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Delete",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							const { error } = await NotesService.deleteNote(
-								noteId
-							);
+		Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: "Delete",
+				style: "destructive",
+				onPress: async () => {
+					try {
+						const { error } = await NotesService.deleteNote(noteId);
 
-							if (error) {
-								console.error("Error deleting note:", error);
-								Alert.alert(
-									"Error",
-									"Failed to delete note. Please try again."
-								);
-								return;
-							}
-
-							setNotes((prevNotes) =>
-								prevNotes.filter((note) => note.id !== noteId)
-							);
-							Alert.alert(
-								"Success",
-								"Note deleted successfully!"
-							);
-						} catch (error) {
-							console.error("Exception deleting note:", error);
-							Alert.alert(
-								"Error",
-								"An unexpected error occurred."
-							);
+						if (error) {
+							console.error("Error deleting note:", error);
+							Alert.alert("Error", "Failed to delete note. Please try again.");
+							return;
 						}
-					},
+
+						setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
+						Alert.alert("Success", "Note deleted successfully!");
+					} catch (error) {
+						console.error("Exception deleting note:", error);
+						Alert.alert("Error", "An unexpected error occurred.");
+					}
 				},
-			]
-		);
+			},
+		]);
+	};
+
+	const handleDateChange = (event: any, selectedDate?: Date) => {
+		if (Platform.OS === "android") {
+			if (event.type === "dismissed") {
+				setShowDatePicker(false);
+				setSelectedNoteId(null);
+				return;
+			}
+			setShowDatePicker(false);
+			if (selectedDate && selectedNoteId) {
+				console.log("Reminder set for:", selectedDate, "Note ID:", selectedNoteId);
+				setSelectedNoteId(null);
+			}
+		} else {
+			if (selectedDate && selectedNoteId) {
+				console.log("Reminder set for:", selectedDate, "Note ID:", selectedNoteId);
+				setSelectedNoteId(null);
+			}
+		}
 	};
 
 	useEffect(() => {
@@ -109,7 +116,7 @@ export default function Assignments() {
 
 	return (
 		<View style={globalStyles.container}>
-			      <UserHeader />
+			<UserHeader />
 
 			<View style={globalStyles.content}>
 				<View style={styles.header}>
@@ -121,9 +128,7 @@ export default function Assignments() {
 
 				{loading ? (
 					<View style={styles.centerContainer}>
-						<Text style={styles.loadingText}>
-							Loading assignments...
-						</Text>
+						<Text style={styles.loadingText}>Loading assignments...</Text>
 					</View>
 				) : notes.length === 0 ? (
 					<View style={styles.centerContainer}>
@@ -140,41 +145,50 @@ export default function Assignments() {
 						{notes.map((note, index) => (
 							<View
 								key={note.id}
-								style={[
-									styles.noteCard,
-									index === 0 && styles.firstCard,
-								]}
+								style={[styles.noteCard, index === 0 && styles.firstCard]}
 							>
 								<View style={styles.noteHeader}>
 									<View style={styles.noteTypeBadge}>
-										<Text style={styles.noteTypeText}>
-											Assignment
-										</Text>
+										<Text style={styles.noteTypeText}>Assignment</Text>
 									</View>
+
+									{/* Remind Button */}
+									<TouchableOpacity
+										style={styles.remindButton}
+										onPress={() => {
+											setSelectedNoteId(note.id);
+											setShowDatePicker(true);
+										}}
+									>
+										<Text style={styles.remindButtonText}>⏰</Text>
+									</TouchableOpacity>
+
+									{/* Delete Button */}
 									<TouchableOpacity
 										style={styles.deleteButton}
-										onPress={() =>
-											handleDeleteNote(note.id)
-										}
+										onPress={() => handleDeleteNote(note.id)}
 									>
-										<Text style={styles.deleteButtonText}>
-											×
-										</Text>
+										<Text style={styles.deleteButtonText}>×</Text>
 									</TouchableOpacity>
 								</View>
-								<Text style={styles.noteContent}>
-									{note.content}
-								</Text>
+								<Text style={styles.noteContent}>{note.content}</Text>
 								<View style={styles.noteFooter}>
-									<Text style={styles.noteDate}>
-										{formatDate(note.created_at)}
-									</Text>
+									<Text style={styles.noteDate}>{formatDate(note.created_at)}</Text>
 								</View>
 							</View>
 						))}
 					</ScrollView>
 				)}
 			</View>
+
+			{showDatePicker && (
+				<DateTimePicker
+					value={new Date()}
+					mode="date"
+					display="default"
+					onChange={handleDateChange}
+				/>
+			)}
 
 			<BackButton
 				onPress={() =>
@@ -301,5 +315,19 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "bold",
 		lineHeight: 20,
+	},
+	remindButton: {
+		backgroundColor: "#4caf50",
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		justifyContent: "center",
+		alignItems: "center",
+		marginHorizontal: 8,
+	},
+	remindButtonText: {
+		color: "white",
+		fontSize: 16,
+		fontWeight: "bold",
 	},
 });
