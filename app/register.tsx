@@ -67,7 +67,7 @@ export default function RegisterScreen() {
 
 	return (
 		<View style={styles.container}>
-			<AppHeader />
+			<AppHeader compact />
 
 			<View style={styles.card}>
 				<View style={styles.headerRow}>

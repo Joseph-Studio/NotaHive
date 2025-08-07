@@ -47,7 +47,7 @@ export default function LoginScreen() {
 
 	return (
 		<View style={styles.container}>
-			<AppHeader />
+			<AppHeader compact />
 
 			<View style={styles.card}>
 				<View style={styles.headerRow}>
