@@ -169,6 +169,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		marginHorizontal: 12,
 		minWidth: 80,
+		textAlign: "center",
 	},
 	noteTypeText: {
 		color: "white",
