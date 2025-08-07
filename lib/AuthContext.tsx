@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase.Client";
 import { UserService } from "./userService";
+import { NotificationService } from "./notificationService";
 
 interface AuthContextType {
 	user: User | null;
@@ -64,6 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			// Ensure profile exists for current user
 			if (session?.user) {
 				await ensureUserProfile(session.user);
+				// Start notification service for initial session
+				NotificationService.startReminderChecking();
 			}
 
 			setLoading(false);
@@ -79,12 +82,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			// Ensure profile exists when user signs in
 			if (session?.user) {
 				await ensureUserProfile(session.user);
+				// Start notification service when user is authenticated
+				NotificationService.startReminderChecking();
+			} else {
+				// Stop notification service when user logs out
+				NotificationService.stopReminderChecking();
 			}
 
 			setLoading(false);
 		});
 
-		return () => subscription.unsubscribe();
+		return () => {
+			subscription.unsubscribe();
+			// Stop notification service when component unmounts
+			NotificationService.stopReminderChecking();
+		};
 	}, []);
 
 	// Helper function to ensure user profile exists

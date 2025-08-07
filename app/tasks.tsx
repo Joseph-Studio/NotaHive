@@ -7,7 +7,7 @@ import {
 	TouchableOpacity,
 	Alert,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
 import globalStyles from "../styles/globalStyles";
@@ -100,6 +100,13 @@ export default function Tasks() {
 		loadNotes();
 	}, [user?.id]);
 
+	// Refresh notes when screen comes into focus
+	useFocusEffect(
+		React.useCallback(() => {
+			loadNotes();
+		}, [user?.id])
+	);
+
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return (
@@ -109,28 +116,39 @@ export default function Tasks() {
 		);
 	};
 
-	const handleToggleCompleted = async (noteId: string, currentValue: boolean) => {
-        try {
-            const { data, error } = await NotesService.updateNoteCompleted(noteId, !currentValue);
-            if (error) {
-                console.error("Error updating note completion:", error);
-                Alert.alert("Error", "Failed to update note. Please try again.");
-                return;
-            }
-            setNotes((prevNotes) =>
-                prevNotes.map((note) =>
-                    note.id === noteId ? { ...note, completed: !currentValue } : note
-                )
-            );
-        } catch (error) {
-            console.error("Exception updating note completion:", error);
-            Alert.alert("Error", "An unexpected error occurred.");
-        }
-    };
+	const handleToggleCompleted = async (
+		noteId: string,
+		currentValue: boolean
+	) => {
+		try {
+			const { data, error } = await NotesService.updateNoteCompleted(
+				noteId,
+				!currentValue
+			);
+			if (error) {
+				console.error("Error updating note completion:", error);
+				Alert.alert(
+					"Error",
+					"Failed to update note. Please try again."
+				);
+				return;
+			}
+			setNotes((prevNotes) =>
+				prevNotes.map((note) =>
+					note.id === noteId
+						? { ...note, completed: !currentValue }
+						: note
+				)
+			);
+		} catch (error) {
+			console.error("Exception updating note completion:", error);
+			Alert.alert("Error", "An unexpected error occurred.");
+		}
+	};
 
 	return (
 		<View style={globalStyles.container}>
-			      <UserHeader />
+			<UserHeader />
 
 			<View style={globalStyles.content}>
 				<View style={styles.header}>
@@ -163,7 +181,11 @@ export default function Tasks() {
 								noteType={note.note_type}
 								onDelete={handleDeleteNote}
 								onValueChange={() =>
-									handleToggleCompleted(note.id, note.completed ?? false)}
+									handleToggleCompleted(
+										note.id,
+										note.completed ?? false
+									)
+								}
 								isFirst={index === 0}
 							/>
 						))}
@@ -171,16 +193,23 @@ export default function Tasks() {
 				)}
 			</View>
 
-			<BackButton
-				onPress={() =>
-					router.push({ pathname: `./home`, params: { username } })
-				}
-				variant="circle"
-			/>
-			<SettingsButton
-				variant="circle"
-				onPress={() => console.log("Settings from Tasks")}
-			/>
+			<View style={styles.buttonContainer}>
+				<BackButton
+					onPress={() =>
+						router.push({
+							pathname: `./home`,
+							params: { username },
+						})
+					}
+					variant="circle"
+				/>
+				<View style={styles.rightButtons}>
+					<SettingsButton
+						variant="circle"
+						onPress={() => console.log("Settings from Tasks")}
+					/>
+				</View>
+			</View>
 		</View>
 	);
 }
@@ -296,5 +325,16 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "bold",
 		lineHeight: 20,
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	rightButtons: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 	},
 });

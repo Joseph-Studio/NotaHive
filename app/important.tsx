@@ -7,7 +7,7 @@ import {
 	TouchableOpacity,
 	Alert,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
 import globalStyles from "../styles/globalStyles";
@@ -15,7 +15,7 @@ import BackButton from "../components/BackButton";
 import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
-import Checkbox from 'expo-checkbox';
+import Checkbox from "expo-checkbox";
 import NoteCard from "../components/NoteCard";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
@@ -100,6 +100,13 @@ export default function Important() {
 		loadNotes();
 	}, [user?.id]);
 
+	// Refresh notes when screen comes into focus
+	useFocusEffect(
+		React.useCallback(() => {
+			loadNotes();
+		}, [user?.id])
+	);
+
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return (
@@ -109,24 +116,35 @@ export default function Important() {
 		);
 	};
 
-	const handleToggleCompleted = async (noteId: string, currentValue: boolean) => {
-        try {
-            const { data, error } = await NotesService.updateNoteCompleted(noteId, !currentValue);
-            if (error) {
-                console.error("Error updating note completion:", error);
-                Alert.alert("Error", "Failed to update note. Please try again.");
-                return;
-            }
-            setNotes((prevNotes) =>
-                prevNotes.map((note) =>
-                    note.id === noteId ? { ...note, completed: !currentValue } : note
-                )
-            );
-        } catch (error) {
-            console.error("Exception updating note completion:", error);
-            Alert.alert("Error", "An unexpected error occurred.");
-        }
-    };
+	const handleToggleCompleted = async (
+		noteId: string,
+		currentValue: boolean
+	) => {
+		try {
+			const { data, error } = await NotesService.updateNoteCompleted(
+				noteId,
+				!currentValue
+			);
+			if (error) {
+				console.error("Error updating note completion:", error);
+				Alert.alert(
+					"Error",
+					"Failed to update note. Please try again."
+				);
+				return;
+			}
+			setNotes((prevNotes) =>
+				prevNotes.map((note) =>
+					note.id === noteId
+						? { ...note, completed: !currentValue }
+						: note
+				)
+			);
+		} catch (error) {
+			console.error("Exception updating note completion:", error);
+			Alert.alert("Error", "An unexpected error occurred.");
+		}
+	};
 
 	return (
 		<View style={globalStyles.container}>
@@ -162,11 +180,14 @@ export default function Important() {
 							<NoteCard
 								key={note.id}
 								note={note}
-								noteType="Important"
+								noteType={note.note_type}
 								isFirst={index === 0}
 								onDelete={() => handleDeleteNote(note.id)}
 								onValueChange={(newValue) =>
-									handleToggleCompleted(note.id, note.completed)
+									handleToggleCompleted(
+										note.id,
+										note.completed
+									)
 								}
 							/>
 						))}
@@ -174,16 +195,23 @@ export default function Important() {
 				)}
 			</View>
 
-			<BackButton
-				onPress={() =>
-					router.push({ pathname: `./home`, params: { username } })
-				}
-				variant="circle"
-			/>
-			<SettingsButton
-				variant="circle"
-				onPress={() => console.log("Settings from Important")}
-			/>
+			<View style={styles.buttonContainer}>
+				<BackButton
+					onPress={() =>
+						router.push({
+							pathname: `./home`,
+							params: { username },
+						})
+					}
+					variant="circle"
+				/>
+				<View style={styles.rightButtons}>
+					<SettingsButton
+						variant="circle"
+						onPress={() => console.log("Settings from Important")}
+					/>
+				</View>
+			</View>
 		</View>
 	);
 }
@@ -299,5 +327,16 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "bold",
 		lineHeight: 20,
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	rightButtons: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 	},
 });

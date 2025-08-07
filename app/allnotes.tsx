@@ -7,7 +7,7 @@ import {
 	TouchableOpacity,
 	Alert,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
 import globalStyles from "../styles/globalStyles";
@@ -15,7 +15,7 @@ import BackButton from "../components/BackButton";
 import { NotesService } from "../lib/notesService";
 import { useAuth } from "../lib/AuthContext";
 import { Database } from "../lib/database.types";
-import Checkbox from 'expo-checkbox';
+import Checkbox from "expo-checkbox";
 import NoteCard from "../components/NoteCard";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
@@ -97,6 +97,13 @@ export default function AllNotes() {
 		loadNotes();
 	}, [user?.id]);
 
+	// Refresh notes when screen comes into focus
+	useFocusEffect(
+		React.useCallback(() => {
+			loadNotes();
+		}, [user?.id])
+	);
+
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return (
@@ -136,83 +143,101 @@ export default function AllNotes() {
 		}
 	};
 
-	const handleToggleCompleted = async (noteId: string, currentValue: boolean) => {
-        try {
-            const { data, error } = await NotesService.updateNoteCompleted(noteId, !currentValue);
-            if (error) {
-                console.error("Error updating note completion:", error);
-                Alert.alert("Error", "Failed to update note. Please try again.");
-                return;
-            }
-            setNotes((prevNotes) =>
-                prevNotes.map((note) =>
-                    note.id === noteId ? { ...note, completed: !currentValue } : note
-                )
-            );
-        } catch (error) {
-            console.error("Exception updating note completion:", error);
-            Alert.alert("Error", "An unexpected error occurred.");
-        }
-    };
+	const handleToggleCompleted = async (
+		noteId: string,
+		currentValue: boolean
+	) => {
+		try {
+			const { data, error } = await NotesService.updateNoteCompleted(
+				noteId,
+				!currentValue
+			);
+			if (error) {
+				console.error("Error updating note completion:", error);
+				Alert.alert(
+					"Error",
+					"Failed to update note. Please try again."
+				);
+				return;
+			}
+			setNotes((prevNotes) =>
+				prevNotes.map((note) =>
+					note.id === noteId
+						? { ...note, completed: !currentValue }
+						: note
+				)
+			);
+		} catch (error) {
+			console.error("Exception updating note completion:", error);
+			Alert.alert("Error", "An unexpected error occurred.");
+		}
+	};
 
 	return (
-        <View style={globalStyles.container}>
-            <UserHeader />
+		<View style={globalStyles.container}>
+			<UserHeader />
 
-            <View style={globalStyles.content}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>All Notes</Text>
-                    <Text style={styles.subtitle}>
-                        {notes.length} note{notes.length !== 1 ? "s" : ""} total
-                    </Text>
-                </View>
+			<View style={globalStyles.content}>
+				<View style={styles.header}>
+					<Text style={styles.title}>All Notes</Text>
+					<Text style={styles.subtitle}>
+						{notes.length} note{notes.length !== 1 ? "s" : ""} total
+					</Text>
+				</View>
 
-                {loading ? (
-                    <View style={styles.centerContainer}>
-                        <Text style={styles.loadingText}>
-                            Loading all notes...
-                        </Text>
-                    </View>
-                ) : notes.length === 0 ? (
-                    <View style={styles.centerContainer}>
-                        <Text style={styles.emptyText}>No notes yet</Text>
-                        <Text style={styles.emptySubtext}>
-                            Create your first note to get started!
-                        </Text>
-                    </View>
-                ) : (
-                    <ScrollView
-                        style={styles.notesContainer}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {notes.map((note, index) => (
-                            <NoteCard
-                                key={note.id}
-                                note={note}
-                                noteType={note.note_type}
-                                isFirst={index === 0}
-                                onDelete={() => handleDeleteNote(note.id)}
-                                onValueChange={(id, completed) =>
-                                    handleToggleCompleted(id, completed)
-                                }
-                            />
-                        ))}
-                    </ScrollView>
-                )}
-            </View>
+				{loading ? (
+					<View style={styles.centerContainer}>
+						<Text style={styles.loadingText}>
+							Loading all notes...
+						</Text>
+					</View>
+				) : notes.length === 0 ? (
+					<View style={styles.centerContainer}>
+						<Text style={styles.emptyText}>No notes yet</Text>
+						<Text style={styles.emptySubtext}>
+							Create your first note to get started!
+						</Text>
+					</View>
+				) : (
+					<ScrollView
+						style={styles.notesContainer}
+						showsVerticalScrollIndicator={false}
+					>
+						{notes.map((note, index) => (
+							<NoteCard
+								key={note.id}
+								note={note}
+								noteType={note.note_type}
+								isFirst={index === 0}
+								onDelete={() => handleDeleteNote(note.id)}
+								onValueChange={(id, completed) =>
+									handleToggleCompleted(id, completed)
+								}
+							/>
+						))}
+					</ScrollView>
+				)}
+			</View>
 
-            <BackButton
-                onPress={() =>
-                    router.push({ pathname: `./home`, params: { username } })
-                }
-                variant="circle"
-            />
-            <SettingsButton
-                variant="circle"
-                onPress={() => console.log("Settings from All Notes")}
-            />
-        </View>
-    );
+			<View style={styles.buttonContainer}>
+				<BackButton
+					onPress={() =>
+						router.push({
+							pathname: `./home`,
+							params: { username },
+						})
+					}
+					variant="circle"
+				/>
+				<View style={styles.rightButtons}>
+					<SettingsButton
+						variant="circle"
+						onPress={() => console.log("Settings from All Notes")}
+					/>
+				</View>
+			</View>
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
@@ -324,5 +349,16 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "bold",
 		lineHeight: 20,
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	rightButtons: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 	},
 });

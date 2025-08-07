@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import SettingsButton from "../components/SettingsButton";
 import UserHeader from "../components/UserHeader";
 import NoteCard from "../components/NoteCard";
@@ -43,6 +43,18 @@ export default function MyDay() {
 			setLoading(false);
 		}
 	};
+
+	// Load notes
+	useEffect(() => {
+		loadNotes();
+	}, [user]);
+
+	// Refresh notes when screen comes into focus
+	useFocusEffect(
+		React.useCallback(() => {
+			loadNotes();
+		}, [user?.id])
+	);
 
 	const handleDeleteNote = async (noteId: string) => {
 		Alert.alert(
@@ -88,28 +100,49 @@ export default function MyDay() {
 		);
 	};
 
-	useEffect(() => {
-		loadNotes();
-	}, [user?.id]);
+	const handleToggleCompleted = async (
+		noteId: string,
+		currentValue: boolean
+	) => {
+		try {
+			const { data, error } = await NotesService.updateNoteCompleted(
+				noteId,
+				!currentValue
+			);
+			if (error) {
+				console.error("Error updating note completion:", error);
+				Alert.alert(
+					"Error",
+					"Failed to update note. Please try again."
+				);
+				return;
+			}
+			setNotes((prevNotes) =>
+				prevNotes.map((note) =>
+					note.id === noteId
+						? { ...note, completed: !currentValue }
+						: note
+				)
+			);
+		} catch (error) {
+			console.error("Exception updating note completion:", error);
+			Alert.alert("Error", "An unexpected error occurred.");
+		}
+	};
 
-	const handleToggleCompleted = async (noteId: string, currentValue: boolean) => {
-        try {
-            const { data, error } = await NotesService.updateNoteCompleted(noteId, !currentValue);
-            if (error) {
-                console.error("Error updating note completion:", error);
-                Alert.alert("Error", "Failed to update note. Please try again.");
-                return;
-            }
-            setNotes((prevNotes) =>
-                prevNotes.map((note) =>
-                    note.id === noteId ? { ...note, completed: !currentValue } : note
-                )
-            );
-        } catch (error) {
-            console.error("Exception updating note completion:", error);
-            Alert.alert("Error", "An unexpected error occurred.");
-        }
-    };
+	// Handle reminder setting for notes
+	const handleReminderSet = async (
+		noteId: string,
+		reminderDate: string | null
+	) => {
+		try {
+			// Update local state to reflect the change
+			loadNotes(); // Reload notes to get the updated reminder status
+		} catch (error) {
+			console.error("Error handling reminder:", error);
+			Alert.alert("Error", "An unexpected error occurred.");
+		}
+	};
 
 	return (
 		<View style={globalStyles.container}>
@@ -148,7 +181,12 @@ export default function MyDay() {
 								noteType={note.note_type}
 								onDelete={handleDeleteNote}
 								onValueChange={() =>
-									handleToggleCompleted(note.id, note.completed ?? false)}
+									handleToggleCompleted(
+										note.id,
+										note.completed ?? false
+									)
+								}
+								onReminderSet={handleReminderSet}
 								isFirst={index === 0}
 							/>
 						))}
@@ -156,16 +194,23 @@ export default function MyDay() {
 				)}
 			</View>
 
-			<BackButton
-				onPress={() =>
-					router.push({ pathname: `./home`, params: { username } })
-				}
-				variant="circle"
-			/>
-			<SettingsButton
-				variant="circle"
-				onPress={() => console.log("Settings from My Day")}
-			/>
+			<View style={styles.buttonContainer}>
+				<BackButton
+					onPress={() =>
+						router.push({
+							pathname: `./home`,
+							params: { username },
+						})
+					}
+					variant="circle"
+				/>
+				<View style={styles.rightButtons}>
+					<SettingsButton
+						variant="circle"
+						onPress={() => console.log("Settings from My Day")}
+					/>
+				</View>
+			</View>
 		</View>
 	);
 }
@@ -213,5 +258,16 @@ const styles = StyleSheet.create({
 	},
 	notesContainer: {
 		flex: 1,
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	rightButtons: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 	},
 });

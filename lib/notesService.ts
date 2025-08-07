@@ -8,7 +8,12 @@ type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 export class NotesService {
 	// Create a new note
 	static async createNote(
-userId: string, title: string, content: string, noteType: NoteInsert["note_type"], completedNote: boolean	): Promise<{ data: Note | null; error: any }> {
+		userId: string,
+		title: string,
+		content: string,
+		noteType: NoteInsert["note_type"],
+		completedNote: boolean
+	): Promise<{ data: Note | null; error: any }> {
 		try {
 			const { data, error } = await supabase
 				.from("notes")
@@ -17,7 +22,7 @@ userId: string, title: string, content: string, noteType: NoteInsert["note_type"
 					title: title,
 					content: content,
 					note_type: noteType,
-					completed: completedNote
+					completed: completedNote,
 				})
 				.select()
 				.single();
@@ -108,11 +113,11 @@ userId: string, title: string, content: string, noteType: NoteInsert["note_type"
 	}
 
 	static async updateNoteCompleted(noteId: string, completed: boolean) {
-    return supabase
-        .from('notes')
-        .update({ completed })
-        .eq('id', noteId)
-        .single();
+		return supabase
+			.from("notes")
+			.update({ completed })
+			.eq("id", noteId)
+			.single();
 	}
 
 	// Delete a note
@@ -164,6 +169,65 @@ userId: string, title: string, content: string, noteType: NoteInsert["note_type"
 			return { data: counts, error: null };
 		} catch (error) {
 			console.error("Exception fetching note counts:", error);
+			return { data: null, error };
+		}
+	}
+
+	// Update reminder for a note
+	static async updateNoteReminder(
+		noteId: string,
+		reminderDate: Date | null,
+		reminderEnabled: boolean
+	): Promise<{ data: Note | null; error: any }> {
+		try {
+			const { data, error } = await supabase
+				.from("notes")
+				.update({
+					reminder_date: reminderDate
+						? reminderDate.toISOString()
+						: null,
+					reminder_enabled: reminderEnabled,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id", noteId)
+				.select()
+				.single();
+
+			if (error) {
+				console.error("Error updating note reminder:", error);
+				return { data: null, error };
+			}
+
+			return { data, error: null };
+		} catch (error) {
+			console.error("Exception updating note reminder:", error);
+			return { data: null, error };
+		}
+	}
+
+	// Get notes with active reminders that are due
+	static async getDueReminders(
+		userId: string
+	): Promise<{ data: Note[] | null; error: any }> {
+		try {
+			const now = new Date().toISOString();
+			const { data, error } = await supabase
+				.from("notes")
+				.select("*")
+				.eq("user_id", userId)
+				.eq("reminder_enabled", true)
+				.not("reminder_date", "is", null)
+				.lte("reminder_date", now)
+				.order("reminder_date", { ascending: true });
+
+			if (error) {
+				console.error("Error fetching due reminders:", error);
+				return { data: null, error };
+			}
+
+			return { data, error: null };
+		} catch (error) {
+			console.error("Exception fetching due reminders:", error);
 			return { data: null, error };
 		}
 	}

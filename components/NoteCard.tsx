@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Database } from "../lib/database.types";
 import Checkbox from "expo-checkbox";
+import NoteReminder from "./NoteReminder";
 
 type Note = Database["public"]["Tables"]["notes"]["Row"];
 
@@ -10,6 +11,7 @@ interface NoteCardProps {
 	noteType?: string;
 	onDelete: (noteId: string) => void;
 	onValueChange: (id: string, completed: boolean) => void;
+	onReminderSet?: (noteId: string, reminderDate: string | null) => void;
 	isFirst?: boolean;
 }
 
@@ -18,6 +20,7 @@ export default function NoteCard({
 	noteType,
 	onDelete,
 	onValueChange,
+	onReminderSet,
 	isFirst = false,
 }: NoteCardProps) {
 	const getNoteTypeColor = (selectedNoteType: string) => {
@@ -51,21 +54,20 @@ export default function NoteCard({
 			style={[
 				styles.noteCard,
 				isFirst && styles.firstCard,
-				{ borderLeftColor: getNoteTypeColor(noteType) },
+				{ borderLeftColor: getNoteTypeColor(noteType || "") },
 			]}
 		>
-
 			<View style={styles.noteHeader}>
 				<Checkbox
-                    value={note.completed}
-                    onValueChange={() =>
-                        onValueChange(note.id, note.completed ?? false)
-                    }
-                />
+					value={note.completed}
+					onValueChange={() =>
+						onValueChange(note.id, note.completed ?? false)
+					}
+				/>
 				<Text
 					style={[
 						styles.noteTypeBadge,
-						{ backgroundColor: getNoteTypeColor(noteType) },
+						{ backgroundColor: getNoteTypeColor(noteType || "") },
 						styles.noteTypeText,
 					]}
 				>
@@ -78,14 +80,15 @@ export default function NoteCard({
 					<Text style={styles.deleteButtonText}>×</Text>
 				</TouchableOpacity>
 			</View>
-			{
-				note.title ? (
-					<Text style={styles.noteTitle}>{note.title}</Text>
-				) : (
-					<Text style={styles.noteContent}>Untitled Note</Text>
-				)
-			}
+			{note.title ? (
+				<Text style={styles.noteTitle}>{note.title}</Text>
+			) : (
+				<Text style={styles.noteContent}>Untitled Note</Text>
+			)}
 			<Text style={styles.noteContent}>{note.content}</Text>
+
+			<NoteReminder noteId={note.id} onReminderSet={onReminderSet} />
+
 			<Text style={[styles.noteDate, styles.noteFooter]}>
 				{formatDate(note.created_at)}
 			</Text>
@@ -157,7 +160,6 @@ const styles = StyleSheet.create({
 	},
 	noteHeader: {
 		flexDirection: "row",
-		justifyContent: "space-between",
 		alignItems: "center",
 		marginBottom: 12,
 	},
@@ -165,6 +167,8 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 4,
 		borderRadius: 12,
+		marginHorizontal: 12,
+		minWidth: 80,
 	},
 	noteTypeText: {
 		color: "white",

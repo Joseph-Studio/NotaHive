@@ -75,7 +75,7 @@ export default function HomePage() {
 					? Object.values(noteCounts).reduce(
 							(sum, count) => sum + count,
 							0
-					)
+					  )
 					: noteCounts[routeKey] || 0;
 
 			return {
@@ -132,7 +132,9 @@ export default function HomePage() {
 				))}
 			</ScrollView>
 
-			<SettingsButton variant="circle" onPress={handleLogout} />
+			<View style={styles.buttonContainer}>
+				<SettingsButton variant="circle" onPress={handleLogout} />
+			</View>
 
 			<TouchableOpacity
 				style={styles.newNote}
@@ -182,6 +184,12 @@ const styles = StyleSheet.create({
 	count: {
 		color: "#fff",
 		fontWeight: "600",
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 16,
 	},
 	newNote: {
 		backgroundColor: "#2e2e2e",

@@ -53,7 +53,36 @@ export type Database = {
 					note_type?: "MyDay" | "Important" | "Assignments" | "Tasks";
 					created_at?: string;
 					updated_at?: string;
-					completed: boolean;
+					completed?: boolean;
+				};
+			};
+			reminders: {
+				Row: {
+					id: string;
+					note_id: string;
+					user_id: string;
+					reminder_date: string;
+					is_completed: boolean;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					note_id: string;
+					user_id: string;
+					reminder_date: string;
+					is_completed?: boolean;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: {
+					id?: string;
+					note_id?: string;
+					user_id?: string;
+					reminder_date?: string;
+					is_completed?: boolean;
+					created_at?: string;
+					updated_at?: string;
 				};
 			};
 		};

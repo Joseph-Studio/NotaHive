@@ -1,4 +1,3 @@
-"use client";
 import React, { useState } from "react";
 import {
 	View,
@@ -23,9 +22,10 @@ export default function NewNotes() {
 	const { user } = useAuth();
 	const [text, setText] = useState("");
 	const [title, setTitle] = useState("");
-	const [editing, setEditing] = useState(true);
+	const [editing, setEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
-	const inputRef = React.useRef<TextInput>(null);
+	const titleInputRef = React.useRef<TextInput>(null);
+	const textInputRef = React.useRef<TextInput>(null);
 	const [selectedNoteType, setSelectedNoteType] = useState<NoteType>("MyDay");
 	const completed = false;
 
@@ -54,18 +54,26 @@ export default function NewNotes() {
 			);
 
 			if (error) {
-				console.log(selectedNoteType);
 				console.error("Error saving note:", error);
 				Alert.alert("Error", "Failed to save note. Please try again.");
 				return;
 			}
 
 			if (data) {
-				console.log("Note saved successfully:", data);
-				Alert.alert("Success", `Note saved as ${selectedNoteType}!`);
-				setText("");
-				setEditing(true);
-				inputRef.current && inputRef.current.focus();
+				Alert.alert(
+					"Success",
+					`Note saved to ${selectedNoteType}! You can view it in the ${selectedNoteType} section.`,
+					[
+						{
+							text: "OK",
+							onPress: () => {
+								setText("");
+								setTitle("");
+								setEditing(false);
+							},
+						},
+					]
+				);
 			}
 		} catch (error) {
 			console.error("Exception saving note:", error);
@@ -80,50 +88,47 @@ export default function NewNotes() {
 
 	const handleClearNote = () => {
 		setText("");
-		setEditing(true);
-		inputRef.current && inputRef.current.focus();
+		setTitle("");
+		setEditing(false);
 	};
 
 	return (
 		<View style={globalStyles.container}>
-			      <UserHeader />
+			<UserHeader />
 
 			<SafeAreaView style={globalStyles.content}>
 				<Text style={styles.label}>New Note</Text>
 				<TextInput
-					ref={inputRef}
 					style={styles.title}
 					placeholder="Enter Title..."
+					placeholderTextColor="gray"
 					value={title}
 					onChangeText={setTitle}
-					autoFocus
 					onSubmitEditing={() => {
 						setEditing(false);
-						inputRef.current && inputRef.current.blur();
 					}}
 					onKeyPress={({ nativeEvent }) => {
 						if (nativeEvent.key === "Enter") {
 							setEditing(false);
-							inputRef.current && inputRef.current.blur();
 						}
 					}}
 				/>
 				<TextInput
-					ref={inputRef}
+					ref={textInputRef}
 					style={styles.input}
 					placeholder="Type here..."
+					placeholderTextColor="gray"
 					value={text}
 					onChangeText={setText}
 					multiline={true}
-					autoFocus
 					onSubmitEditing={() => {
 						setEditing(false);
-						inputRef.current && inputRef.current.blur();
+						textInputRef.current && textInputRef.current.blur();
 					}}
 					onKeyPress={({ nativeEvent }) => {
 						if (nativeEvent.key === "Enter") {
 							setEditing(false);
-							inputRef.current && inputRef.current.blur();
+							textInputRef.current && textInputRef.current.blur();
 						}
 					}}
 				/>
@@ -135,6 +140,13 @@ export default function NewNotes() {
 
 			<View style={styles.footer}>
 				<TouchableOpacity
+					style={styles.clearButton}
+					onPress={handleClearNote}
+					disabled={isSaving}
+				>
+					<Text style={styles.buttonText}>Clear Note</Text>
+				</TouchableOpacity>
+				<TouchableOpacity
 					style={[
 						styles.saveButton,
 						isSaving && styles.disabledButton,
@@ -145,13 +157,6 @@ export default function NewNotes() {
 					<Text style={styles.buttonText}>
 						{isSaving ? "Saving..." : "Save Note"}
 					</Text>
-				</TouchableOpacity>
-				<TouchableOpacity
-					style={styles.clearButton}
-					onPress={handleClearNote}
-					disabled={isSaving}
-				>
-					<Text style={styles.buttonText}>Clear Note</Text>
 				</TouchableOpacity>
 			</View>
 
@@ -175,6 +180,7 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontSize: 30,
+		marginTop: 10,
 		marginBottom: 10,
 		color: "white",
 		fontFamily: "serif",
@@ -200,14 +206,14 @@ const styles = StyleSheet.create({
 		backgroundColor: "#6200ee",
 		borderRadius: 5,
 		flex: 1,
-		marginRight: 10,
+		marginLeft: 10,
 	},
 	clearButton: {
 		padding: 10,
 		backgroundColor: "#f50057",
 		borderRadius: 5,
 		flex: 1,
-		marginLeft: 10,
+		marginRight: 10,
 	},
 	disabledButton: {
 		backgroundColor: "#666",
